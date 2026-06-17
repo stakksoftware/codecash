@@ -86,6 +86,8 @@
       .search input { padding-left: 32px; border-radius: 999px; background: var(--app); }
       .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); }
       .chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; color: var(--ink2); background: var(--panel); cursor: default; }
+      .chip-select { width: auto; padding: 8px 30px 8px 13px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; color: var(--ink2); background: var(--panel); cursor: pointer; }
+      .chip-select:focus { outline: none; border-color: var(--blue); }
       .spacer { flex: 1; }
 
       .body { padding: 18px 22px 40px; overflow-x: hidden; }
@@ -252,7 +254,12 @@
         <div class="topbar">
           <h1>Campaigns</h1>
           <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Search campaigns" /></div>
-          <span class="chip">📅 Last 14 days</span>
+          <select id="daterange" class="chip-select" aria-label="Date range">
+            <option value="7">Last 7 days</option>
+            <option value="14" selected>Last 14 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
           <div class="spacer"></div>
           <button class="btn" id="btn-fund">Add funds</button>
           <button class="btn primary" id="btn-create">+ Create</button>
@@ -367,6 +374,15 @@
       </div>
     </div>
 
+    <!-- CONFIRM dialog -->
+    <div class="scrim" id="m-confirm">
+      <div class="modal sm">
+        <div class="mh"><h2 id="confirm-title">Are you sure?</h2></div>
+        <div class="mb"><p id="confirm-msg" class="muted" style="margin:0"></p></div>
+        <div class="mf"><span class="spacer"></span><button class="btn" id="confirm-cancel">Cancel</button><button class="btn" id="confirm-ok" style="background:var(--red);color:#fff;border-color:transparent">Delete</button></div>
+      </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script type="module">
@@ -386,7 +402,7 @@
       const selected = new Set();
       let allCamps = [];
       let filterStatus = '', filterObjective = '', sortKey = null, sortDir = -1;
-      let analytics = null, chartMetric = 'spentMicros';
+      let analytics = null, chartMetric = 'spentMicros', chartDays = 14;
 
       const OBJ_NAME = { cpm: 'Awareness', cpc: 'Traffic', cpa: 'Conversions' };
       const OBJ_CODE = { cpm: 'CPM', cpc: 'CPC', cpa: 'CPA' };
@@ -444,7 +460,7 @@
       }
       async function refresh() {
         try {
-          const [stats, list, an] = await Promise.all([api('GET', '/v1/advertisers/stats', { key: apiKey }), api('GET', '/v1/advertisers/campaigns', { key: apiKey }), api('GET', '/v1/advertisers/analytics?days=14', { key: apiKey })]);
+          const [stats, list, an] = await Promise.all([api('GET', '/v1/advertisers/stats', { key: apiKey }), api('GET', '/v1/advertisers/campaigns', { key: apiKey }), api('GET', `/v1/advertisers/analytics?days=${chartDays}`, { key: apiKey })]);
           $('#acct-bal').textContent = usd(stats.balanceMicros);
           $('#k-spent').textContent = usd(stats.spentMicros); $('#k-impr').textContent = fmt(stats.impressions); $('#k-clicks').textContent = fmt(stats.engagements); $('#k-conv').textContent = fmt(stats.conversions);
           const k = $('#k-itr'); k.textContent = (stats.invalidTrafficRate * 100).toFixed(1) + '%'; k.className = 'v tnum ' + (stats.invalidTrafficRate > 0.1 ? 'amber' : '');
@@ -567,6 +583,19 @@
       // performance chart controls
       $$('#chart-metrics .cm').forEach((b) => (b.onclick = () => { chartMetric = b.dataset.metric; $$('#chart-metrics .cm').forEach((x) => x.classList.toggle('active', x === b)); renderChart(); }));
       $('#chart-collapse').onclick = () => { const body = $('#chart-body'), hidden = body.style.display === 'none'; body.style.display = hidden ? '' : 'none'; $('#chart-collapse').textContent = hidden ? '▾ Hide chart' : '▸ Show chart'; };
+      $('#daterange').onchange = (e) => { chartDays = Number(e.target.value); refresh(); };
+
+      // styled confirm dialog (replaces native confirm)
+      function confirmDialog(msg, title = 'Are you sure?', okLabel = 'Delete') {
+        return new Promise((resolve) => {
+          $('#confirm-title').textContent = title; $('#confirm-msg').textContent = msg; $('#confirm-ok').textContent = okLabel;
+          openM('#m-confirm');
+          const done = (v) => { closeM('#m-confirm'); resolve(v); };
+          $('#confirm-ok').onclick = () => done(true);
+          $('#confirm-cancel').onclick = () => done(false);
+          $('#m-confirm').onclick = (e) => { if (e.target === $('#m-confirm')) done(false); };
+        });
+      }
       // account dropdown menu
       $('#acctbtn').onclick = (e) => { e.stopPropagation(); $('#acctmenu').classList.toggle('open'); };
       $('#m-copykey').onclick = async () => { try { await navigator.clipboard.writeText(apiKey); toast('API key copied', 'ok'); } catch (e) {} $('#acctmenu').classList.remove('open'); };
@@ -585,7 +614,8 @@
       }
       async function delCampaigns(ids) {
         if (!ids.length) return;
-        if (!confirm(`Delete ${ids.length} campaign${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
+        const ok = await confirmDialog(`Delete ${ids.length} campaign${ids.length === 1 ? '' : 's'}? This permanently removes ${ids.length === 1 ? 'it' : 'them'} and cannot be undone.`, ids.length === 1 ? 'Delete campaign' : 'Delete campaigns');
+        if (!ok) return;
         try { for (const id of ids) await api('POST', '/v1/advertisers/campaigns/delete', { key: apiKey, body: { id } }); toast('Deleted', 'ok'); await refresh(); }
         catch (e) { toast(e.message, 'err'); }
       }

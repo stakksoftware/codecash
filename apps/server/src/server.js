@@ -520,10 +520,13 @@ export const handlers = {
 };
 
 function serveStatic(res, name, contentType) {
+  // App pages must always reflect the latest deploy → revalidate. Static assets
+  // (images, the install script) can be cached briefly at the edge.
+  const cache = contentType.includes('text/html') ? 'no-cache' : 'public, max-age=300';
   for (const candidate of [path.join(here, '..', 'public', name), path.join(process.cwd(), 'apps/server/public', name)]) {
     try {
       const data = fs.readFileSync(candidate);
-      res.writeHead(200, { 'content-type': contentType, 'cache-control': 'public, max-age=300' });
+      res.writeHead(200, { 'content-type': contentType, 'cache-control': cache });
       return res.end(data);
     } catch {
       /* try next */
