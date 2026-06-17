@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CodeCash — Trust &amp; methodology</title>
+    <meta name="description" content="The published payout formula, privacy promise, and fraud model behind CodeCash." />
+    <meta name="theme-color" content="#0e9f6e" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e9f6e'/%3E%3Crect x='7' y='7' width='18' height='18' rx='5' fill='none' stroke='white' stroke-opacity='.92' stroke-width='3'/%3E%3C/svg%3E" />
+    <script>
+      (function () { try { var t = localStorage.getItem('cc_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
+    </script>
+    <style>
+      :root {
+        --paper: #ffffff; --bg: #f7f7f5; --ink: #111113; --ink2: #52525b; --muted: #8a8a93;
+        --line: rgba(17,17,19,.09); --accent: #0e9f6e; --accent-soft: #edf7f1;
+        --rl: 18px;
+        --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+        --mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        --shadow: 0 1px 2px rgba(17,17,19,.04), 0 12px 40px rgba(17,17,19,.06);
+      }
+      html[data-theme="dark"] {
+        --paper: #15181e; --bg: #0b0c0e; --ink: #e9edf3; --ink2: #aab2bf; --muted: #79828f;
+        --line: rgba(255,255,255,.10); --accent: #34d399; --accent-soft: rgba(52,211,153,.13);
+        --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 50px rgba(0,0,0,.5);
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; transition: background .3s, color .3s; }
+      a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+      .wrap { max-width: 820px; margin: 0 auto; padding: 0 28px; }
+      code, .mono { font-family: var(--mono); }
+      @keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+      .reveal { animation: up .5s cubic-bezier(.2,.7,.2,1) both; }
+
+      header.nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 75%, transparent); backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--line); }
+      .nav .wrap { max-width: 980px; display: flex; align-items: center; justify-content: space-between; height: 60px; }
+      .brand { display: flex; align-items: center; gap: 9px; font-weight: 560; font-size: 15.5px; letter-spacing: -.01em; color: var(--ink); }
+      .mark { width: 22px; height: 22px; border-radius: 7px; background: var(--accent); box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--paper) 88%, transparent); }
+      .links { display: flex; align-items: center; gap: 4px; } .links a, .iconbtn { color: var(--ink2); font-size: 14px; padding: 8px 12px; border-radius: 9px; background: none; border: none; font: inherit; cursor: pointer; text-decoration: none; }
+      .links a:hover { color: var(--ink); background: var(--paper); text-decoration: none; } .iconbtn { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; }
+
+      .hero { padding: 70px 0 10px; }
+      .eyebrow { font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+      h1 { font-size: clamp(32px, 5vw, 46px); letter-spacing: -.035em; font-weight: 600; margin: 12px 0 0; }
+      .lede { font-size: 18px; color: var(--ink2); margin: 14px 0 0; max-width: 620px; }
+
+      section { padding: 40px 0; border-top: 1px solid var(--line); margin-top: 40px; }
+      section:first-of-type { border-top: none; margin-top: 24px; }
+      h2 { font-size: 24px; letter-spacing: -.025em; font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; gap: 10px; }
+      h2 .ic { width: 30px; height: 30px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+      h3 { font-size: 16px; margin: 26px 0 8px; letter-spacing: -.01em; }
+      p { color: var(--ink2); margin: 10px 0; }
+      .card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--rl); padding: 22px 24px; margin: 16px 0; box-shadow: var(--shadow); }
+      .formula { font-family: var(--mono); font-size: 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; color: var(--ink); white-space: pre-wrap; line-height: 1.7; }
+      .formula .c { color: var(--muted); }
+      table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+      th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+      td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+      ul { color: var(--ink2); margin: 12px 0; padding-left: 0; list-style: none; }
+      li { padding: 9px 0 9px 30px; position: relative; border-bottom: 1px solid var(--line); }
+      li:last-child { border-bottom: none; }
+      li::before { content: ""; position: absolute; left: 4px; top: 16px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+      li b { color: var(--ink); font-weight: 600; }
+      .pill { display: inline-block; font-size: 12px; font-family: var(--mono); background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 1px 7px; }
+      .allow { font-family: var(--mono); font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; line-height: 1.9; }
+      .allow .k { color: var(--accent); }
+      footer { border-top: 1px solid var(--line); padding: 26px 0 60px; margin-top: 40px; color: var(--muted); font-size: 13.5px; }
+      footer a { color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="wrap">
+        <a class="brand" href="/"><span class="mark"></span> codecash</a>
+        <nav class="links">
+          <a href="/dashboard">Dashboard</a>
+          <a href="/advertiser">Advertise</a>
+          <a href="https://github.com/stakksoftware/codecash" target="_blank" rel="noopener">GitHub</a>
+          <button class="iconbtn" id="theme" aria-label="Toggle theme"></button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="hero reveal">
+        <div class="eyebrow">Trust &amp; methodology</div>
+        <h1>How CodeCash works — in full.</h1>
+        <p class="lede">The incumbent broke on opacity and fraud. Here is exactly how you're paid, what we transmit, and how we keep traffic honest. Nothing here is a black box.</p>
+      </div>
+
+      <section class="reveal">
+        <h2><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h18M12 3v18"/></svg></span> The payout formula</h2>
+        <p>Published and versioned — <span class="pill">v1.0.0</span>. Every signed receipt records the formula version it was paid under, so an old receipt stays verifiable forever.</p>
+        <div class="formula"><span class="c"># per monetizable event, all amounts in integer micro-USD</span>
+gross    = (CPM / 1000) × weight × quality      <span class="c"># or 10% of order value for conversions</span>
+net      = gross × userShare                    <span class="c"># your money</span>
+platform = gross − net</div>
+        <h3>Event weights &amp; split</h3>
+        <table>
+          <tr><th>Parameter</th><th class="num">Value</th><th>Meaning</th></tr>
+          <tr><td>impression</td><td class="num">×1</td><td>a verified, quality-gated view</td></tr>
+          <tr><td>engagement (click)</td><td class="num">×8</td><td>intentional, far harder to fake</td></tr>
+          <tr><td>conversion</td><td class="num">×60</td><td>or a 10% rev-share of order value</td></tr>
+          <tr><td>your share</td><td class="num">70%</td><td>you keep 70%, platform 30%</td></tr>
+        </table>
+        <div class="card">
+          <h3 style="margin-top:0">The two invariants we will never break</h3>
+          <ul>
+            <li><b>No threshold throttling.</b> The formula takes no balance, threshold, or lifetime-earnings input — it is mathematically impossible to taper your earnings as you approach cash-out. A unit test enforces this.</li>
+            <li><b>Reproducible receipts.</b> Every receipt carries all its inputs. Anyone can re-run this formula and confirm the amount — your <a href="/dashboard">dashboard</a> does it in your browser, trusting nothing.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="reveal">
+        <h2><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span> Privacy promise</h2>
+        <p><b style="color:var(--ink)">Your prompts and code never leave your machine.</b> Targeting runs entirely on-device. The complete, exhaustive list of what a CodeCash client transmits is enforced in code by an allowlist — if anyone tries to add a field outside it, the client throws and the test suite fails.</p>
+        <h3>What stays on your device, always</h3>
+        <p>Prompts, agent conversations, code, file contents, file paths, directory and repository names, and the local signals used to pick an ad.</p>
+        <h3>The only thing we receive</h3>
+        <div class="allow"><span class="k">schema</span>       — a constant
+<span class="k">deviceId</span>     — a pseudonymous, rotating id (not your identity)
+<span class="k">periodStart</span>  — window start
+<span class="k">periodEnd</span>    — window end
+<span class="k">surface</span>      — a category like "agent-cli" (never which repo)
+<span class="k">events[]</span>     — per campaign: { campaignId, type, count, quality, cpmMicros }
+<span class="k">nonce</span>        — anti-replay</div>
+        <p>Aggregated counts, signed by your device key. No free-text field exists for context to hide in. The client is <a href="https://github.com/stakksoftware/codecash" target="_blank" rel="noopener">open source</a> — read every byte that runs on your machine.</p>
+      </section>
+
+      <section class="reveal">
+        <h2><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span> Fraud resistance</h2>
+        <p>Advertisers pay real CPMs only when the traffic is real. CodeCash is built so impression-saturation — the attack that sank the incumbent — simply doesn't pay.</p>
+        <ul>
+          <li><b>Verified impressions only.</b> Payout is gated by genuine active-session signals (a real agent/build running, focused window, real time-on-screen). A tracker that fires on any render earns $0.</li>
+          <li><b>Device-bound signatures.</b> Every counter must be signed by the key your device registered. You can't submit for a device you don't hold.</li>
+          <li><b>Replay protection &amp; rate limits.</b> Single-use nonces; bounded counters per device per minute.</li>
+          <li><b>Anomaly clamping &amp; a daily velocity cap.</b> Implausible volumes are clamped; a fixed $20/day gross cap bounds any single account — the same for everyone, independent of cash-out proximity.</li>
+          <li><b>Server-authoritative pricing.</b> We credit using our own CPM and conversion values, never the numbers a client claims. Lying about CPM does nothing.</li>
+          <li><b>Weighted toward hard-to-fake events.</b> Clicks (×8) and conversions (×60) dominate payout — far harder to fake than a view.</li>
+          <li><b>Sybil resistance at cash-out.</b> Money only leaves to a verified payment identity, verified at withdrawal so honest users face no signup friction.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">© 2026 CodeCash · MIT · <a href="/">Home</a> · <a href="/dashboard">Dashboard</a> · <a href="/advertiser">Advertise</a> · <a href="/.well-known/codecash-receipts.json">Receipt key</a></div>
+    </footer>
+
+    <script>
+      var SUN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>';
+      var MOON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>';
+      var t = document.getElementById('theme');
+      function paint() { t.innerHTML = document.documentElement.getAttribute('data-theme') === 'dark' ? SUN : MOON; }
+      paint();
+      t.onclick = function () { var n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', n); try { localStorage.setItem('cc_theme', n); } catch (e) {} paint(); };
+    </script>
+  </body>
+</html>

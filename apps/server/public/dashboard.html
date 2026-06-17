@@ -91,9 +91,14 @@
       </div>
 
       <div class="controls reveal">
-        <input id="token" placeholder="Paste your access token (run: codecash doctor)" />
-        <button class="btn ink" id="load">Load ledger</button>
+        <input id="email" type="email" placeholder="Your email (the one you earn with)" autocomplete="email" />
+        <button class="btn ink" id="signin">View my earnings</button>
         <button class="btn" id="export" style="display:none">Export CSV</button>
+      </div>
+      <p class="note reveal" style="margin:-12px 0 20px"><a id="usetoken" style="cursor:pointer">Use an access token instead</a></p>
+      <div class="controls reveal" id="tokenpanel" style="display:none; margin-top:-8px">
+        <input id="token" placeholder="Paste your access token (run: codecash doctor)" />
+        <button class="btn" id="load">Load ledger</button>
       </div>
 
       <div class="strip reveal" id="strip" style="display:none">
@@ -133,8 +138,35 @@
       paint();
       tbtn.onclick = () => { const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', n); try { localStorage.setItem('cc_theme', n); } catch (e) {} paint(); };
 
+      const LSE = 'cc_email';
+      $('email').value = localStorage.getItem(LSE) || '';
       $('token').value = new URL(location.href).searchParams.get('token') || location.hash.replace('#', '') || localStorage.getItem(LS) || '';
       let receiptKey = null, lastEntries = [];
+
+      // Self-serve sign-in: generate a device keypair in the browser and log in
+      // with your email (the account your CLI earns into). Falls back to pasting
+      // an access token if Ed25519 keygen isn't available.
+      function b64uBytes(bytes) { let s = ''; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+      async function signIn() {
+        const email = $('email').value.trim(); if (!email) return;
+        const btn = $('signin'); btn.disabled = true; btn.textContent = 'Signing in…';
+        try {
+          const kp = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+          const raw = new Uint8Array(await crypto.subtle.exportKey('raw', kp.publicKey));
+          const pub = b64uBytes(raw), deviceId = 'dev_web_' + pub.slice(0, 12);
+          const res = await fetch('/v1/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, deviceId, devicePublicKey: pub }) });
+          const j = await res.json(); if (!res.ok) throw new Error(j.error || 'sign-in failed');
+          localStorage.setItem(LSE, email); localStorage.setItem(LS, j.auth.accessToken);
+          $('token').value = j.auth.accessToken; await load();
+        } catch (e) {
+          $('tokenpanel').style.display = 'flex';
+          $('usetoken').textContent = 'Sign-in unavailable here — paste an access token:';
+        }
+        btn.disabled = false; btn.textContent = 'View my earnings';
+      }
+      $('signin').onclick = signIn;
+      $('email').addEventListener('keydown', (e) => { if (e.key === 'Enter') signIn(); });
+      $('usetoken').onclick = () => { const p = $('tokenpanel'); p.style.display = p.style.display === 'none' ? 'flex' : 'none'; };
 
       const canon = (v) => JSON.stringify(sort(v));
       function sort(v) { if (Array.isArray(v)) return v.map(sort); if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v).sort()) if (v[k] !== undefined) o[k] = sort(v[k]); return o; } return v; }

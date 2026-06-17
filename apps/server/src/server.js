@@ -476,6 +476,22 @@ export const handlers = {
   ogImage(req, res) {
     serveStatic(res, 'og.svg', 'image/svg+xml; charset=utf-8');
   },
+
+  trust(req, res) {
+    serveStatic(res, 'trust.html', 'text/html; charset=utf-8');
+  },
+
+  notFound(req, res) {
+    // Browsers get a styled page; API clients get JSON.
+    if ((req.headers['accept'] || '').includes('text/html')) {
+      try {
+        const html = fs.readFileSync(path.join(here, '..', 'public', '404.html'));
+        res.writeHead(404, { 'content-type': 'text/html; charset=utf-8' });
+        return res.end(html);
+      } catch { /* fall through to json */ }
+    }
+    send(res, 404, { error: 'not found' });
+  },
 };
 
 function serveStatic(res, name, contentType) {
@@ -511,6 +527,7 @@ export async function handle(req, res) {
     if (p === '/' || p === '/home') return handlers.landing(req, res);
     if (p === '/dashboard') return handlers.dashboard(req, res);
     if (p === '/advertiser' || p === '/ads') return handlers.advertiserDashboard(req, res);
+    if (p === '/trust' || p === '/how-it-works') return handlers.trust(req, res);
     if (p === '/install.sh') return handlers.installScript(req, res);
     if (p === '/og.svg') return handlers.ogImage(req, res);
     if (p === '/.well-known/codecash-receipts.json') return handlers.wellKnownKeys(req, res);
@@ -534,7 +551,7 @@ export async function handle(req, res) {
     if (p === '/v1/advertisers/stats' && m === 'GET') return handlers.advertiserStats(req, res);
     if (p === '/v1/admin/import-feed' && m === 'POST') return handlers.adminImportFeed(req, res);
 
-    send(res, 404, { error: 'not found' });
+    return handlers.notFound(req, res);
   } catch (e) {
     send(res, 500, { error: e?.message || 'server error' });
   }
