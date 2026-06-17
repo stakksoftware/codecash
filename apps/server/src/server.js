@@ -351,27 +351,27 @@ export const handlers = {
   async advertiserListCampaigns(req, res) {
     const advertiserId = await authAdvertiser(req);
     if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
-    const list = await store.campaignsForAdvertiser(advertiserId);
-    const campaigns = [];
-    for (const c of list) {
-      campaigns.push({
-        ...c,
-        pricing: describePricing(c),
-        stats: await store.campaignStats(c.id),
-        remainingBudgetMicros: await store.campaignRemainingBudget(c.id),
-      });
-    }
+    // Fetch advertiser balance once + all per-campaign stats in parallel, and
+    // compute remaining budget locally (no extra round-trips per campaign).
+    const [list, adv] = await Promise.all([store.campaignsForAdvertiser(advertiserId), store.getAdvertiser(advertiserId)]);
+    const statsList = await Promise.all(list.map((c) => store.campaignStats(c.id)));
+    const advBalance = adv?.balanceMicros ?? 0;
+    const campaigns = list.map((c, i) => ({
+      ...c,
+      pricing: describePricing(c),
+      stats: statsList[i],
+      remainingBudgetMicros: Math.max(0, Math.min(c.budgetMicros - c.spentMicros, advBalance)),
+    }));
     send(res, 200, { campaigns });
   },
 
   async advertiserStats(req, res) {
     const advertiserId = await authAdvertiser(req);
     if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
-    const adv = await store.getAdvertiser(advertiserId);
-    const campaigns = await store.campaignsForAdvertiser(advertiserId);
+    const [adv, campaigns] = await Promise.all([store.getAdvertiser(advertiserId), store.campaignsForAdvertiser(advertiserId)]);
+    const statsList = await Promise.all(campaigns.map((c) => store.campaignStats(c.id)));
     let impressions = 0, engagements = 0, conversions = 0, flagged = 0, spentMicros = 0;
-    for (const c of campaigns) {
-      const s = await store.campaignStats(c.id);
+    for (const s of statsList) {
       impressions += s.impressions; engagements += s.engagements;
       conversions += s.conversions; flagged += s.flagged; spentMicros += s.spentMicros;
     }
