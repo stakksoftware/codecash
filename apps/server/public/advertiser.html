@@ -4,49 +4,60 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CodeCash — Ads Manager</title>
+    <meta name="theme-color" content="#0e9f6e" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e9f6e'/%3E%3Crect x='7' y='7' width='18' height='18' rx='5' fill='none' stroke='white' stroke-opacity='.92' stroke-width='3'/%3E%3C/svg%3E" />
+    <script>
+      (function () { try { var t = localStorage.getItem('cc_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
+    </script>
     <style>
       :root {
         --paper: #ffffff; --bg: #f7f7f5; --ink: #111113; --ink2: #52525b; --muted: #8a8a93;
         --line: rgba(17,17,19,.09); --line2: rgba(17,17,19,.06);
-        --accent: #0e9f6e; --accent-soft: #edf7f1; --blue: #2563eb;
-        --bad: #dc2626; --warn: #b45309;
+        --accent: #0e9f6e; --accent-soft: #edf7f1; --bad: #dc2626; --warn: #b45309;
+        --th: #fcfcfb;
         --r: 12px; --rl: 18px;
         --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
         --mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
         --shadow: 0 1px 2px rgba(17,17,19,.04), 0 12px 40px rgba(17,17,19,.06);
       }
+      html[data-theme="dark"] {
+        --paper: #15181e; --bg: #0b0c0e; --ink: #e9edf3; --ink2: #aab2bf; --muted: #79828f;
+        --line: rgba(255,255,255,.10); --line2: rgba(255,255,255,.06);
+        --accent: #34d399; --accent-soft: rgba(52,211,153,.13); --bad: #f87171; --warn: #fbbf24;
+        --th: #181b22;
+        --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 50px rgba(0,0,0,.5);
+      }
       * { box-sizing: border-box; }
-      body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.5; -webkit-font-smoothing: antialiased; transition: background .3s, color .3s; }
       a { color: inherit; text-decoration: none; }
       .wrap { max-width: 940px; margin: 0 auto; padding: 0 28px; }
       .muted { color: var(--muted); } .tnum { font-variant-numeric: tabular-nums; }
       ::selection { background: var(--accent-soft); }
+      @keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+      .reveal { animation: up .5s cubic-bezier(.2,.7,.2,1) both; }
 
-      header.nav { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.75); backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--line); }
+      header.nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 75%, transparent); backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--line); }
       .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
       .brand { display: flex; align-items: center; gap: 9px; font-weight: 560; font-size: 15.5px; letter-spacing: -.01em; }
-      .mark { width: 22px; height: 22px; border-radius: 7px; background: var(--accent); box-shadow: inset 0 0 0 3px rgba(255,255,255,.9), 0 2px 8px rgba(14,159,110,.35); }
+      .mark { width: 22px; height: 22px; border-radius: 7px; background: var(--accent); box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--paper) 88%, transparent); }
       .brand .tag { color: var(--muted); font-weight: 450; }
-      .navr { display: flex; align-items: center; gap: 10px; }
+      .navr { display: flex; align-items: center; gap: 8px; }
       .navr a, .navr button { color: var(--ink2); font-size: 14px; padding: 8px 12px; border-radius: 9px; background: none; border: none; font: inherit; cursor: pointer; }
-      .navr a:hover, .navr button:hover { color: var(--ink); background: var(--bg); }
+      .navr a:hover, .navr button:hover { color: var(--ink); background: var(--paper); }
+      .iconbtn { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; }
       .bal { font-size: 14px; color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; background: var(--paper); }
       .bal b { color: var(--accent); }
 
-      /* buttons / inputs */
-      .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: 10px; font: inherit; font-size: 14px; font-weight: 550; cursor: pointer; border: 1px solid var(--line); background: var(--paper); color: var(--ink); transition: .15s; letter-spacing: -.01em; }
-      .btn:hover { background: var(--bg); }
-      .btn.accent { background: var(--accent); color: #fff; border-color: transparent; } .btn.accent:hover { filter: brightness(1.05); background: var(--accent); }
-      .btn.ink { background: var(--ink); color: #fff; border-color: transparent; } .btn.ink:hover { opacity: .9; }
+      .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: 10px; font: inherit; font-size: 14px; font-weight: 550; cursor: pointer; border: 1px solid var(--line); background: var(--paper); color: var(--ink); transition: .15s; }
+      .btn:hover { background: var(--bg); } .btn.accent { background: var(--accent); color: #fff; border-color: transparent; } .btn.accent:hover { filter: brightness(1.05); }
       .btn:disabled { opacity: .45; cursor: not-allowed; }
       label { display: block; font-size: 12.5px; color: var(--ink2); font-weight: 500; margin: 16px 0 6px; }
-      input, textarea { width: 100%; background: var(--paper); border: 1px solid var(--line); color: var(--ink); border-radius: 10px; padding: 11px 13px; font: inherit; font-size: 14.5px; transition: .15s; }
-      input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+      input, textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--ink); border-radius: 10px; padding: 11px 13px; font: inherit; font-size: 14.5px; transition: .15s; }
+      input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--paper); }
       textarea { resize: vertical; min-height: 58px; }
       .money { position: relative; } .money input { padding-left: 26px; } .money .sym { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14.5px; }
       .row { display: flex; gap: 12px; } .row > * { flex: 1; }
 
-      /* onboarding */
       .center { min-height: calc(100vh - 60px); display: grid; place-items: center; padding: 30px 0; }
       .card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--rl); padding: 34px; width: 100%; max-width: 420px; box-shadow: var(--shadow); }
       .card h1 { font-size: 23px; letter-spacing: -.03em; font-weight: 600; margin: 0 0 6px; }
@@ -57,72 +68,65 @@
       .keybox code { font-family: var(--mono); font-size: 12.5px; word-break: break-all; color: var(--ink); }
       .keybox .w { display: block; color: var(--warn); font-size: 11.5px; margin-bottom: 7px; font-weight: 500; }
 
-      /* app */
       .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 34px 0 22px; flex-wrap: wrap; }
       .head h1 { font-size: 27px; letter-spacing: -.035em; font-weight: 600; margin: 0; }
       .head .who { color: var(--muted); font-size: 13.5px; margin-top: 3px; }
       .head .actions { display: flex; gap: 9px; }
 
       .strip { display: flex; background: var(--paper); border: 1px solid var(--line); border-radius: var(--rl); overflow: hidden; margin-bottom: 22px; }
-      .strip .s { flex: 1; padding: 16px 20px; border-right: 1px solid var(--line); }
-      .strip .s:last-child { border-right: none; }
+      .strip .s { flex: 1; padding: 16px 20px; border-right: 1px solid var(--line); } .strip .s:last-child { border-right: none; }
       .strip .k { font-size: 11.5px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
-      .strip .v { font-size: 21px; margin-top: 5px; letter-spacing: -.02em; }
-      .strip .v.good { color: var(--accent); } .strip .v.bad { color: var(--bad); }
+      .strip .v { font-size: 21px; margin-top: 5px; letter-spacing: -.02em; } .strip .v.good { color: var(--accent); } .strip .v.bad { color: var(--bad); }
 
       .panel { background: var(--paper); border: 1px solid var(--line); border-radius: var(--rl); overflow: hidden; }
       table { width: 100%; border-collapse: collapse; }
       th, td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--line2); font-size: 13.5px; }
       tr:last-child td { border-bottom: none; }
-      thead th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; background: #fcfcfb; }
+      tbody tr { transition: background .12s; } tbody tr:hover { background: var(--bg); }
+      thead th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; background: var(--th); }
       td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
       .cname { font-weight: 500; letter-spacing: -.01em; } .csub { color: var(--muted); font-size: 12px; margin-top: 1px; }
       .obj { font-family: var(--mono); font-size: 11px; color: var(--ink2); letter-spacing: .03em; }
       .st { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; } .st .dot { width: 7px; height: 7px; border-radius: 50%; }
       .st.active .dot { background: var(--accent); } .st.exhausted .dot, .st.paused .dot { background: var(--muted); }
       .st.active { color: var(--ink); } .st.exhausted, .st.paused { color: var(--muted); }
+      .rowbtn { border: 1px solid var(--line); background: var(--paper); color: var(--ink2); border-radius: 8px; padding: 5px 11px; font: inherit; font-size: 12px; cursor: pointer; transition: .12s; }
+      .rowbtn:hover { color: var(--ink); border-color: color-mix(in srgb, var(--ink) 25%, transparent); }
 
       .empty { text-align: center; padding: 64px 20px; }
       .empty .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; margin: 0 auto 14px; }
+      .empty h3 { margin: 0 0 5px; font-size: 17px; letter-spacing: -.02em; } .empty p { color: var(--ink2); margin: 0 0 18px; font-size: 14px; }
       .spin { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--accent); margin: 0 auto; animation: sp .7s linear infinite; }
       @keyframes sp { to { transform: rotate(360deg); } }
-      .empty h3 { margin: 0 0 5px; font-size: 17px; letter-spacing: -.02em; } .empty p { color: var(--ink2); margin: 0 0 18px; font-size: 14px; }
 
-      /* slide-over drawer */
-      .scrim { position: fixed; inset: 0; background: rgba(17,17,19,.28); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: .22s; z-index: 40; }
+      .scrim { position: fixed; inset: 0; background: rgba(8,9,11,.4); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: .22s; z-index: 40; }
       .scrim.open { opacity: 1; pointer-events: auto; }
-      .drawer { position: fixed; top: 0; right: 0; height: 100%; width: 460px; max-width: 92vw; background: var(--paper); border-left: 1px solid var(--line); box-shadow: -20px 0 60px rgba(17,17,19,.1); transform: translateX(100%); transition: transform .26s cubic-bezier(.4,0,.2,1); z-index: 50; display: flex; flex-direction: column; }
+      .drawer { position: fixed; top: 0; right: 0; height: 100%; width: 460px; max-width: 92vw; background: var(--paper); border-left: 1px solid var(--line); box-shadow: -20px 0 60px rgba(8,9,11,.3); transform: translateX(100%); transition: transform .26s cubic-bezier(.4,0,.2,1); z-index: 50; display: flex; flex-direction: column; }
       .drawer.open { transform: none; }
       .drawer .dh { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--line); }
       .drawer .dh h2 { font-size: 18px; letter-spacing: -.02em; margin: 0; font-weight: 600; }
       .drawer .x { border: none; background: none; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px; }
       .drawer .db { padding: 4px 24px 24px; overflow-y: auto; flex: 1; }
       .drawer .df { padding: 16px 24px; border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: flex-end; }
-
       .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-      .seg .o { border: 1px solid var(--line); border-radius: 11px; padding: 11px 10px; cursor: pointer; text-align: center; transition: .14s; background: var(--paper); }
-      .seg .o:hover { border-color: rgba(17,17,19,.2); }
+      .seg .o { border: 1px solid var(--line); border-radius: 11px; padding: 11px 10px; cursor: pointer; text-align: center; transition: .14s; background: var(--bg); }
+      .seg .o:hover { border-color: color-mix(in srgb, var(--ink) 18%, transparent); }
       .seg .o.sel { border-color: var(--accent); background: var(--accent-soft); }
       .seg .o b { font-size: 13.5px; font-weight: 600; } .seg .o span { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
-
-      .hint { font-size: 12.5px; color: var(--ink2); margin-top: 8px; }
-      .hint b { color: var(--ink); font-weight: 600; }
+      .hint { font-size: 12.5px; color: var(--ink2); margin-top: 8px; } .hint b { color: var(--ink); font-weight: 600; }
       .counter { float: right; font-size: 11.5px; color: var(--muted); font-weight: 400; }
+      .term { margin-top: 16px; background: #0c0d10; border-radius: 12px; padding: 14px 16px; font-family: var(--mono); font-size: 12.5px; }
+      .term .t1 { color: #6b7280; } .term .t2 { color: #e5e7eb; margin-top: 6px; } .term .t2 .s { color: #6b7280; } .term .t2 .a { color: #34d399; }
 
-      .term { margin-top: 16px; background: #0c0d10; border-radius: 12px; padding: 14px 16px; font-family: var(--mono); font-size: 12.5px; box-shadow: var(--shadow); }
-      .term .t1 { color: #6b7280; } .term .t2 { color: #e5e7eb; margin-top: 6px; }
-      .term .t2 .s { color: #6b7280; } .term .t2 .a { color: #34d399; }
-
-      /* small modal (funds) */
-      .modal-scrim { position: fixed; inset: 0; background: rgba(17,17,19,.28); backdrop-filter: blur(2px); display: none; place-items: center; z-index: 60; padding: 20px; }
+      .modal-scrim { position: fixed; inset: 0; background: rgba(8,9,11,.4); backdrop-filter: blur(2px); display: none; place-items: center; z-index: 60; padding: 20px; }
       .modal-scrim.open { display: grid; }
       .modal { background: var(--paper); border: 1px solid var(--line); border-radius: var(--rl); padding: 24px; width: 100%; max-width: 380px; box-shadow: var(--shadow); }
       .modal h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: -.02em; } .modal .desc { color: var(--muted); font-size: 13.5px; margin: 0 0 6px; }
       .modal .mf { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 
-      .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px); background: var(--ink); color: #fff; border-radius: 11px; padding: 11px 18px; font-size: 14px; opacity: 0; transition: .24s; z-index: 80; box-shadow: var(--shadow); }
+      .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px); background: var(--ink); color: var(--bg); border-radius: 11px; padding: 11px 18px; font-size: 14px; opacity: 0; transition: .24s; z-index: 80; box-shadow: var(--shadow); }
       .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-      .toast.err { background: var(--bad); } .toast.ok { background: var(--accent); }
+      .toast.err { background: var(--bad); color: #fff; } .toast.ok { background: var(--accent); color: #fff; }
 
       @media (max-width: 700px) { .strip { flex-wrap: wrap; } .strip .s { flex: 1 0 50%; border-bottom: 1px solid var(--line); } .hide-sm { display: none; } }
     </style>
@@ -134,13 +138,13 @@
         <div class="navr" id="navr">
           <a href="/dashboard">Dashboard</a>
           <a href="https://github.com/stakksoftware/codecash" target="_blank" rel="noopener">GitHub</a>
+          <button class="iconbtn" id="theme" title="Toggle theme" aria-label="Toggle theme"></button>
         </div>
       </div>
     </header>
 
-    <!-- ONBOARDING -->
     <div id="onboard" class="center" style="display:none">
-      <div class="card" id="ob-card">
+      <div class="card reveal" id="ob-card">
         <h1>Advertise on CodeCash</h1>
         <p class="lead">Reach developers in their flow. Pay only for verified, quality-gated traffic.</p>
         <div id="pane-create">
@@ -160,30 +164,23 @@
       </div>
     </div>
 
-    <!-- APP -->
     <div id="app" class="wrap" style="display:none">
-      <div class="head">
-        <div>
-          <h1>Campaigns</h1>
-          <div class="who" id="who"></div>
-        </div>
+      <div class="head reveal">
+        <div><h1>Campaigns</h1><div class="who" id="who"></div></div>
         <div class="actions">
           <button class="btn" id="btn-fund">Add funds</button>
           <button class="btn accent" id="btn-new">New campaign</button>
         </div>
       </div>
-
-      <div class="strip">
+      <div class="strip reveal">
         <div class="s"><div class="k">Balance</div><div class="v good tnum" id="s-balance">—</div></div>
         <div class="s"><div class="k">Spent</div><div class="v tnum" id="s-spent">—</div></div>
         <div class="s"><div class="k">Impr · Clicks · Conv</div><div class="v tnum" id="s-events">—</div></div>
         <div class="s"><div class="k">Invalid traffic</div><div class="v tnum" id="s-itp">—</div></div>
       </div>
-
-      <div id="camp-area"></div>
+      <div id="camp-area" class="reveal"></div>
     </div>
 
-    <!-- New campaign drawer -->
     <div class="scrim" id="scrim"></div>
     <aside class="drawer" id="drawer" aria-hidden="true">
       <div class="dh"><h2>New campaign</h2><button class="x" data-close>×</button></div>
@@ -194,33 +191,25 @@
           <div class="o" data-obj="cpc"><b>CPC</b><span>per click</span></div>
           <div class="o" data-obj="cpa"><b>CPA</b><span>per action</span></div>
         </div>
-
         <div class="row">
           <div><label id="bid-label">Bid · per 1k views</label><div class="money"><span class="sym">$</span><input id="f-bid" type="number" min="0" step="0.01" value="10.00" /></div></div>
           <div><label>Total budget</label><div class="money"><span class="sym">$</span><input id="f-budget" type="number" min="0" step="1" value="25" /></div></div>
         </div>
         <div class="hint" id="hint"></div>
-
         <label>Headline <span class="counter" id="f-count">0 / 120</span></label>
         <textarea id="f-text" maxlength="120" placeholder="Acme: ship Rust faster → acme.example"></textarea>
-
         <div class="row">
           <div><label>Destination URL</label><input id="f-url" placeholder="https://acme.example" /></div>
           <div><label>Tags</label><input id="f-tags" placeholder="rust, go, docker" /></div>
         </div>
-
         <div class="term">
-          <div class="t1" id="t-ctx">~/api · agent thinking…</div>
+          <div class="t1">~/api · agent thinking…</div>
           <div class="t2"><span class="s">·</span> <span class="a">Sponsored by</span> <span id="pv-adv">your brand</span><span class="s">:</span> <span id="pv-text">your headline</span></div>
         </div>
       </div>
-      <div class="df">
-        <button class="btn" data-close>Cancel</button>
-        <button class="btn accent" id="f-create">Launch campaign</button>
-      </div>
+      <div class="df"><button class="btn" data-close>Cancel</button><button class="btn accent" id="f-create">Launch campaign</button></div>
     </aside>
 
-    <!-- Add funds modal -->
     <div class="modal-scrim" id="m-fund">
       <div class="modal">
         <h2>Add funds</h2>
@@ -246,6 +235,14 @@
       let advName = localStorage.getItem(LS_NAME) || '';
       let objective = 'cpm';
 
+      // theme
+      const SUN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>';
+      const MOON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>';
+      const tbtn = $('#theme');
+      const paintIcon = () => (tbtn.innerHTML = document.documentElement.getAttribute('data-theme') === 'dark' ? SUN : MOON);
+      paintIcon();
+      tbtn.onclick = () => { const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', n); try { localStorage.setItem('cc_theme', n); } catch (e) {} paintIcon(); };
+
       function toast(msg, kind) { const t = $('#toast'); t.textContent = msg; t.className = 'toast show ' + (kind || ''); clearTimeout(t._t); t._t = setTimeout(() => (t.className = 'toast'), 2600); }
       async function api(method, path, { body, key } = {}) {
         const res = await fetch(API + path, { method, headers: { 'content-type': 'application/json', ...(key ? { 'x-api-key': key } : {}) }, body: body ? JSON.stringify(body) : undefined });
@@ -255,18 +252,14 @@
       }
       const show = (id, on) => ($(id).style.display = on ? '' : 'none');
 
-      // onboarding toggles
       $('#to-key').onclick = () => { show('#pane-create', false); show('#pane-key', true); };
       $('#to-create').onclick = () => { show('#pane-key', false); show('#pane-create', true); };
       $('#ob-create').onclick = async () => {
         const name = $('#ob-name').value.trim(), email = $('#ob-email').value.trim();
         if (!name || !email) return toast('Name and email required', 'err');
         $('#ob-create').disabled = true;
-        try {
-          const r = await api('POST', '/v1/advertisers', { body: { name, email } });
-          apiKey = r.apiKey; advName = name; localStorage.setItem(LS_KEY, apiKey); localStorage.setItem(LS_NAME, advName);
-          revealKey(apiKey);
-        } catch (e) { toast(e.message, 'err'); $('#ob-create').disabled = false; }
+        try { const r = await api('POST', '/v1/advertisers', { body: { name, email } }); apiKey = r.apiKey; advName = name; localStorage.setItem(LS_KEY, apiKey); localStorage.setItem(LS_NAME, advName); revealKey(apiKey); }
+        catch (e) { toast(e.message, 'err'); $('#ob-create').disabled = false; }
       };
       $('#ob-signin').onclick = async () => {
         const k = $('#ob-apikey').value.trim(); if (!k) return toast('Paste your API key', 'err');
@@ -274,17 +267,11 @@
         catch (e) { toast('Invalid key', 'err'); }
       };
       function revealKey(key) {
-        $('#ob-card').innerHTML = `
-          <h1>You're in.</h1>
-          <p class="lead">Save your API key — it signs into the CLI and other devices. Shown once.</p>
-          <div class="keybox"><span class="w">⚠ Store this somewhere safe</span><code>${esc(key)}</code></div>
-          <button class="btn" id="copykey" style="width:100%;justify-content:center;margin-bottom:9px">Copy key</button>
-          <button class="btn accent" id="gomgr" style="width:100%;justify-content:center">Continue →</button>`;
+        $('#ob-card').innerHTML = `<h1>You're in.</h1><p class="lead">Save your API key — it signs into the CLI and other devices. Shown once.</p><div class="keybox"><span class="w">⚠ Store this somewhere safe</span><code>${esc(key)}</code></div><button class="btn" id="copykey" style="width:100%;justify-content:center;margin-bottom:9px">Copy key</button><button class="btn accent" id="gomgr" style="width:100%;justify-content:center">Continue →</button>`;
         $('#copykey').onclick = async () => { try { await navigator.clipboard.writeText(key); toast('Copied', 'ok'); } catch (e) {} };
         $('#gomgr').onclick = enterApp;
       }
 
-      // sign out lives in nav
       $('#navr').insertAdjacentHTML('afterbegin', '<button id="signout" style="display:none">Sign out</button><span id="navbal"></span>');
       $('#signout').onclick = () => { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_NAME); location.reload(); };
 
@@ -313,6 +300,7 @@
         }
         const rows = camps.map((c) => {
           const s = c.stats, obj = (c.objective || 'cpm').toUpperCase(), itr = (s.invalidTrafficRate * 100).toFixed(1);
+          const act = c.status === 'active' ? `<button class="rowbtn" data-id="${c.id}" data-to="paused">Pause</button>` : c.status === 'paused' ? `<button class="rowbtn" data-id="${c.id}" data-to="active">Resume</button>` : '';
           return `<tr>
             <td><div class="cname">${esc(c.advertiser)}</div><div class="csub hide-sm">${esc(c.text)}</div></td>
             <td><span class="obj">${obj}</span></td>
@@ -321,19 +309,24 @@
             <td class="num">${s.impressions} · ${s.engagements} · ${s.conversions}</td>
             <td class="num">${itr}%</td>
             <td><span class="st ${c.status}"><span class="dot"></span>${c.status}</span></td>
+            <td class="num">${act}</td>
           </tr>`;
         }).join('');
         area.innerHTML = `<div class="panel"><table><thead><tr>
           <th>Campaign</th><th>Type</th><th class="num">Spent</th><th class="num hide-sm">Budget left</th>
-          <th class="num">I · C · Cv</th><th class="num">Invalid</th><th>Status</th>
+          <th class="num">I · C · Cv</th><th class="num">Invalid</th><th>Status</th><th></th>
         </tr></thead><tbody>${rows}</tbody></table></div>`;
+        area.querySelectorAll('.rowbtn').forEach((b) => (b.onclick = async () => {
+          b.disabled = true;
+          try { await api('POST', '/v1/advertisers/campaigns/status', { key: apiKey, body: { id: b.dataset.id, status: b.dataset.to } }); toast(b.dataset.to === 'paused' ? 'Campaign paused' : 'Campaign resumed', 'ok'); await refresh(); }
+          catch (e) { toast(e.message, 'err'); b.disabled = false; }
+        }));
       }
 
-      // drawer / new campaign
       const BID_LABELS = { cpm: 'Bid · per 1k views', cpc: 'Bid · per click', cpa: 'Bid · per action' };
       const BID_DEFAULT = { cpm: '10.00', cpc: '0.30', cpa: '3.00' };
       const UNIT = { cpm: 'impressions', cpc: 'clicks', cpa: 'conversions' };
-      function openDrawer() { syncPreview(); $('#scrim').classList.add('open'); $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false'); }
+      function openDrawer() { syncPreview(); $('#scrim').classList.add('open'); $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false'); setTimeout(() => $('#f-text').focus(), 280); }
       function closeDrawer() { $('#scrim').classList.remove('open'); $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true'); }
       $('#btn-new').onclick = openDrawer;
       $('#scrim').onclick = closeDrawer;
@@ -341,19 +334,15 @@
         const o = e.target.closest('.o'); if (!o) return;
         objective = o.dataset.obj;
         document.querySelectorAll('#seg .o').forEach((x) => x.classList.toggle('sel', x === o));
-        $('#bid-label').textContent = BID_LABELS[objective];
-        $('#f-bid').value = BID_DEFAULT[objective];
-        syncPreview();
+        $('#bid-label').textContent = BID_LABELS[objective]; $('#f-bid').value = BID_DEFAULT[objective]; syncPreview();
       });
       function syncPreview() {
         $('#pv-adv').textContent = advName || 'your brand';
         $('#pv-text').textContent = $('#f-text').value || 'your headline';
         $('#f-count').textContent = $('#f-text').value.length + ' / 120';
         const bid = Number($('#f-bid').value), budget = Number($('#f-budget').value);
-        if (bid > 0 && budget > 0) {
-          let vol = objective === 'cpm' ? (budget / bid) * 1000 : budget / bid;
-          $('#hint').innerHTML = `≈ <b>${fmt(Math.floor(vol))}</b> ${UNIT[objective]} for ${usd(toMicros(budget))} — billed only on verified traffic.`;
-        } else $('#hint').textContent = '';
+        if (bid > 0 && budget > 0) { const vol = objective === 'cpm' ? (budget / bid) * 1000 : budget / bid; $('#hint').innerHTML = `≈ <b>${fmt(Math.floor(vol))}</b> ${UNIT[objective]} for ${usd(toMicros(budget))} — billed only on verified traffic.`; }
+        else $('#hint').textContent = '';
       }
       ['#f-bid', '#f-budget', '#f-text'].forEach((id) => $(id).addEventListener('input', syncPreview));
       $('#f-create').onclick = async () => {
@@ -362,15 +351,12 @@
         if (!(bid > 0)) return toast('Bid must be greater than 0', 'err');
         const tags = $('#f-tags').value.split(',').map((s) => s.trim()).filter(Boolean);
         $('#f-create').disabled = true;
-        try {
-          await api('POST', '/v1/advertisers/campaigns', { key: apiKey, body: { advertiser: advName, objective, bidMicros: toMicros(bid), budgetMicros: toMicros(budget), text, url: $('#f-url').value.trim() || undefined, tags: tags.length ? tags : undefined, model: objective === 'cpa' ? 'affiliate' : 'sponsor' } });
-          closeDrawer(); $('#f-text').value = ''; toast('Campaign launched', 'ok'); await refresh();
-        } catch (e) { toast(e.message, 'err'); }
+        try { await api('POST', '/v1/advertisers/campaigns', { key: apiKey, body: { advertiser: advName, objective, bidMicros: toMicros(bid), budgetMicros: toMicros(budget), text, url: $('#f-url').value.trim() || undefined, tags: tags.length ? tags : undefined, model: objective === 'cpa' ? 'affiliate' : 'sponsor' } }); closeDrawer(); $('#f-text').value = ''; toast('Campaign launched', 'ok'); await refresh(); }
+        catch (e) { toast(e.message, 'err'); }
         $('#f-create').disabled = false;
       };
 
-      // funds
-      $('#btn-fund').onclick = () => $('#m-fund').classList.add('open');
+      $('#btn-fund').onclick = () => { $('#m-fund').classList.add('open'); setTimeout(() => $('#fund-amt').focus(), 50); };
       $('#fund-go').onclick = async () => {
         const amt = Number($('#fund-amt').value); if (!(amt > 0)) return toast('Enter an amount', 'err');
         $('#fund-go').disabled = true;

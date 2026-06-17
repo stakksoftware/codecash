@@ -365,6 +365,17 @@ export const handlers = {
     send(res, 200, { campaigns });
   },
 
+  async advertiserSetCampaignStatus(req, res) {
+    const advertiserId = await authAdvertiser(req);
+    if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
+    const { id, status } = await readJson(req);
+    if (!['active', 'paused'].includes(status)) return send(res, 400, { error: 'status must be "active" or "paused"' });
+    const c = await store.getCampaign(id);
+    if (!c || c.advertiserId !== advertiserId) return send(res, 404, { error: 'no such campaign' });
+    const updated = await store.setCampaignStatus(id, status);
+    send(res, 200, { ok: true, id, status: updated?.status ?? status });
+  },
+
   async advertiserStats(req, res) {
     const advertiserId = await authAdvertiser(req);
     if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
@@ -470,6 +481,7 @@ export async function handle(req, res) {
     if (p === '/v1/advertisers/fund' && m === 'POST') return handlers.advertiserFund(req, res);
     if (p === '/v1/advertisers/campaigns' && m === 'POST') return handlers.advertiserCreateCampaign(req, res);
     if (p === '/v1/advertisers/campaigns' && m === 'GET') return handlers.advertiserListCampaigns(req, res);
+    if (p === '/v1/advertisers/campaigns/status' && m === 'POST') return handlers.advertiserSetCampaignStatus(req, res);
     if (p === '/v1/advertisers/stats' && m === 'GET') return handlers.advertiserStats(req, res);
     if (p === '/v1/admin/import-feed' && m === 'POST') return handlers.adminImportFeed(req, res);
 
