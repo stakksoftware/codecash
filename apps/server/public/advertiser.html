@@ -137,6 +137,21 @@
       .spin { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--blue); margin: 0 auto; animation: sp .7s linear infinite; }
       @keyframes sp { to { transform: rotate(360deg); } }
 
+      /* filter bar + sortable headers + account menu */
+      .filterbar { display: flex; align-items: center; gap: 14px; padding: 12px 2px 14px; }
+      .fgroup { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink2); }
+      .fgroup select { width: auto; padding: 7px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; background: var(--panel); }
+      .resultcount { font-size: 12.5px; }
+      th.sortable { cursor: pointer; user-select: none; } th.sortable:hover { color: var(--ink); }
+      th .caret { font-size: 9px; margin-left: 3px; color: var(--blue); }
+      .acctwrap { position: relative; margin: 12px; }
+      .acctwrap .acct { margin: 0; cursor: pointer; } .acctwrap .acct:hover { border-color: var(--blue); }
+      .acct .nm .cr { margin-left: auto; color: var(--muted); }
+      .acctmenu { position: absolute; left: 0; right: 0; top: calc(100% + 4px); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 6px; display: none; z-index: 30; }
+      .acctmenu.open { display: block; }
+      .acctmenu button { display: block; width: 100%; text-align: left; padding: 8px 10px; border-radius: 7px; background: none; border: none; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+      .acctmenu button:hover { background: var(--hover); }
+
       /* ---------- modal (create / edit / fund) ---------- */
       .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; place-items: center; z-index: 50; padding: 20px; }
       .scrim.open { display: grid; }
@@ -196,9 +211,15 @@
     <div id="app" class="shell" style="display:none">
       <aside class="sidebar">
         <div class="sb-brand"><span class="mark"></span> CodeCash <span class="tag">Ads</span></div>
-        <div class="acct">
-          <div class="nm"><span class="av" id="av">A</span> <span id="acct-name">Account</span></div>
-          <div class="bal">Account balance <b id="acct-bal">$0.00</b></div>
+        <div class="acctwrap">
+          <div class="acct" id="acctbtn">
+            <div class="nm"><span class="av" id="av">A</span> <span id="acct-name">Account</span> <svg class="cr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+            <div class="bal">Account balance <b id="acct-bal">$0.00</b></div>
+          </div>
+          <div class="acctmenu" id="acctmenu">
+            <button id="m-copykey">Copy API key</button>
+            <button id="m-logout">Log out</button>
+          </div>
         </div>
         <nav class="nav">
           <a class="active" id="nav-campaigns"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="11" height="6" rx="1.5"/></svg> Campaigns</a>
@@ -234,6 +255,17 @@
           </div>
 
           <div class="tabs"><div class="t active">Campaigns</div></div>
+
+          <div class="filterbar" id="filterbar" style="display:none">
+            <div class="fgroup"><span>Status</span>
+              <select id="f-status"><option value="">All</option><option value="active">Active</option><option value="paused">Off</option><option value="exhausted">Out of budget</option></select>
+            </div>
+            <div class="fgroup"><span>Objective</span>
+              <select id="f-objective"><option value="">All</option><option value="cpm">Awareness · CPM</option><option value="cpc">Traffic · CPC</option><option value="cpa">Conversions · CPA</option></select>
+            </div>
+            <span class="spacer"></span>
+            <span class="resultcount" id="resultcount"></span>
+          </div>
 
           <div class="bulkbar" id="bulkbar">
             <span class="n" id="bulk-n">0 selected</span>
@@ -323,6 +355,7 @@
       const campById = {};
       const selected = new Set();
       let allCamps = [];
+      let filterStatus = '', filterObjective = '', sortKey = null, sortDir = -1;
 
       const OBJ_NAME = { cpm: 'Awareness', cpc: 'Traffic', cpa: 'Conversions' };
       const OBJ_CODE = { cpm: 'CPM', cpc: 'CPC', cpa: 'CPA' };
@@ -388,17 +421,36 @@
           selected.clear(); renderTable();
         } catch (e) { toast(e.message, 'err'); }
       }
+      function sortVal(c, k) {
+        if (k === 'name') return (c.advertiser + ' ' + c.text).toLowerCase();
+        if (k === 'spent') return c.stats.spentMicros;
+        if (k === 'results') return resultCount(c);
+        if (k === 'impressions') return c.stats.impressions;
+        if (k === 'budget') return c.remainingBudgetMicros;
+        if (k === 'invalid') return c.stats.invalidTrafficRate;
+        return 0;
+      }
       function filteredCamps() {
         const q = $('#search').value.trim().toLowerCase();
-        return !q ? allCamps : allCamps.filter((c) => (c.advertiser + ' ' + c.text).toLowerCase().includes(q));
+        let list = allCamps.filter((c) => {
+          if (q && !(c.advertiser + ' ' + c.text).toLowerCase().includes(q)) return false;
+          if (filterStatus && c.status !== filterStatus) return false;
+          if (filterObjective && (c.objective || 'cpm') !== filterObjective) return false;
+          return true;
+        });
+        if (sortKey) list = list.slice().sort((a, b) => { const av = sortVal(a, sortKey), bv = sortVal(b, sortKey); return (av < bv ? -1 : av > bv ? 1 : 0) * sortDir; });
+        return list;
       }
       function renderTable() {
         const area = $('#camp-area'), camps = filteredCamps();
+        $('#filterbar').style.display = allCamps.length ? 'flex' : 'none';
+        $('#resultcount').textContent = camps.length === allCamps.length ? `${allCamps.length} campaign${allCamps.length === 1 ? '' : 's'}` : `${camps.length} of ${allCamps.length} campaigns`;
         if (!allCamps.length) {
           area.innerHTML = `<div class="tablewrap"><div class="empty"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg></div><h3>Create your first campaign</h3><p>Launch a campaign to start reaching developers in their flow.</p><button class="btn primary" id="empty-new">+ Create</button></div></div>`;
           $('#empty-new').onclick = openCreate; return;
         }
         const delivLabel = { active: 'Active', paused: 'Off', exhausted: 'Out of budget' };
+        const caret = (k) => (sortKey === k ? `<span class="caret">${sortDir < 0 ? '▼' : '▲'}</span>` : '');
         let tImpr = 0, tSpent = 0, tRes = 0;
         const rows = camps.map((c) => {
           const s = c.stats, on = c.status !== 'paused', res = resultCount(c);
@@ -422,9 +474,13 @@
         }).join('');
         area.innerHTML = `<div class="tablewrap"><table>
           <thead><tr>
-            <th><input type="checkbox" class="cb" id="cb-all"></th><th>Off/On</th><th>Campaign</th><th>Delivery</th>
-            <th>Bid strategy</th><th class="num">Budget</th><th class="num">Results</th><th class="num">Cost / result</th>
-            <th class="num">Impressions</th><th class="num">Spent</th><th class="num">Invalid</th>
+            <th><input type="checkbox" class="cb" id="cb-all"></th><th>Off/On</th>
+            <th class="sortable" data-sort="name">Campaign ${caret('name')}</th><th>Delivery</th>
+            <th>Bid strategy</th><th class="num sortable" data-sort="budget">Budget ${caret('budget')}</th>
+            <th class="num sortable" data-sort="results">Results ${caret('results')}</th><th class="num">Cost / result</th>
+            <th class="num sortable" data-sort="impressions">Impressions ${caret('impressions')}</th>
+            <th class="num sortable" data-sort="spent">Spent ${caret('spent')}</th>
+            <th class="num sortable" data-sort="invalid">Invalid ${caret('invalid')}</th>
           </tr></thead>
           <tbody>${rows}</tbody>
           <tfoot><tr>
@@ -447,6 +503,7 @@
         $$('[data-edit]').forEach((a) => (a.onclick = () => openEdit(a.dataset.edit)));
         $$('[data-dup]').forEach((a) => (a.onclick = () => duplicate(a.dataset.dup)));
         $$('[data-del]').forEach((a) => (a.onclick = () => delCampaigns([a.dataset.del])));
+        $$('th.sortable').forEach((th) => (th.onclick = () => { const k = th.dataset.sort; if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = -1; } renderTable(); }));
       }
       function updateBulk() {
         const n = selected.size, bar = $('#bulkbar');
@@ -455,6 +512,13 @@
         $('#bulk-edit').style.display = n === 1 ? '' : 'none';
       }
       $('#search').oninput = renderTable;
+      $('#f-status').onchange = (e) => { filterStatus = e.target.value; renderTable(); };
+      $('#f-objective').onchange = (e) => { filterObjective = e.target.value; renderTable(); };
+      // account dropdown menu
+      $('#acctbtn').onclick = (e) => { e.stopPropagation(); $('#acctmenu').classList.toggle('open'); };
+      $('#m-copykey').onclick = async () => { try { await navigator.clipboard.writeText(apiKey); toast('API key copied', 'ok'); } catch (e) {} $('#acctmenu').classList.remove('open'); };
+      $('#m-logout').onclick = () => { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_NAME); location.reload(); };
+      document.addEventListener('click', () => $('#acctmenu').classList.remove('open'));
 
       // bulk actions
       $('#bulk-edit').onclick = () => openEdit([...selected][0]);
