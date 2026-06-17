@@ -3,95 +3,392 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CodeCash — Advertiser Console</title>
+    <title>CodeCash — Ads Manager</title>
     <style>
       :root {
-        --bg: #0b0e14; --panel: #131823; --line: #222a3a; --text: #e6edf3;
-        --muted: #8b98ad; --accent: #60a5fa; --accent-dim: #16263a; --bad: #f87171;
-        --good: #4ade80; --chip: #1c2433;
+        --bg: #0a0b0e; --panel: #14161b; --panel2: #1b1e25; --line: #262a33;
+        --text: #e7ecf3; --muted: #9aa4b2; --brand: #34d399; --blue: #60a5fa; --blue2: #3b82f6;
+        --bad: #f87171; --warn: #fbbf24; --radius: 16px;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, system-ui, sans-serif;
+        --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
       }
       * { box-sizing: border-box; }
-      body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
-      header { padding: 24px 28px 16px; border-bottom: 1px solid var(--line); }
-      h1 { margin: 0; font-size: 20px; } h1 .b { color: var(--accent); }
-      .sub { color: var(--muted); margin-top: 4px; font-size: 12px; }
-      main { padding: 20px 28px 60px; max-width: 1100px; }
-      .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
-      input { background: var(--panel); border: 1px solid var(--line); color: var(--text); padding: 8px 10px; border-radius: 8px; font: inherit; min-width: 320px; }
-      button { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); padding: 8px 14px; border-radius: 8px; font: inherit; cursor: pointer; }
-      .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 22px; }
-      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
-      .card .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; }
-      .card .v { font-size: 22px; margin-top: 6px; }
-      .card .v.itp { color: var(--good); }
-      table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 12px; overflow: hidden; }
-      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
-      th { color: var(--muted); text-transform: uppercase; font-size: 10.5px; letter-spacing: .5px; }
+      body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+      a { color: inherit; text-decoration: none; }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+      .muted { color: var(--muted); }
+
+      nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; border-bottom: 1px solid var(--line); }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; }
+      .logo { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(145deg, var(--blue), var(--blue2)); display: grid; place-items: center; color: #06203f; font-weight: 800; font-size: 15px; }
+      .navlinks { display: flex; gap: 8px; align-items: center; }
+      .navlinks a, .navlinks button { color: var(--muted); padding: 8px 12px; border-radius: 9px; font-size: 14px; background: none; border: none; font: inherit; cursor: pointer; }
+      .navlinks a:hover, .navlinks button:hover { color: var(--text); background: var(--panel); }
+      .pill { border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; color: var(--text); background: var(--panel); }
+      .pill b { color: var(--brand); }
+
+      /* buttons / inputs */
+      .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 11px; font-weight: 600; font-size: 14.5px; cursor: pointer; border: 1px solid var(--line); background: var(--panel2); color: var(--text); transition: .15s; }
+      .btn:hover { border-color: #39404d; }
+      .btn.primary { background: var(--blue); color: #06203f; border-color: transparent; }
+      .btn.primary:hover { background: #7cb6fb; }
+      .btn:disabled { opacity: .5; cursor: not-allowed; }
+      label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+      input, textarea { width: 100%; background: #0d0f13; border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 11px 13px; font: inherit; font-size: 14.5px; }
+      input:focus, textarea:focus { outline: none; border-color: var(--blue); }
+      textarea { resize: vertical; min-height: 60px; }
+      .row { display: flex; gap: 12px; } .row > * { flex: 1; }
+
+      /* onboarding */
+      .center { min-height: 70vh; display: grid; place-items: center; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 30px; width: 100%; max-width: 460px; }
+      .card h1 { font-size: 24px; letter-spacing: -.5px; margin: 0 0 6px; }
+      .card .lead { color: var(--muted); margin: 0 0 20px; font-size: 15px; }
+      .tabs { display: flex; gap: 6px; background: var(--panel2); border: 1px solid var(--line); border-radius: 11px; padding: 4px; margin-bottom: 6px; }
+      .tabs button { flex: 1; padding: 9px; border-radius: 8px; border: none; background: none; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
+      .tabs button.active { background: var(--blue); color: #06203f; font-weight: 600; }
+
+      /* dashboard */
+      .head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 28px 0 18px; flex-wrap: wrap; }
+      .head h1 { font-size: 26px; letter-spacing: -.6px; margin: 0; }
+      .actions { display: flex; gap: 10px; }
+      .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+      .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+      .stat .k { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; }
+      .stat .v { font-size: 23px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+      .stat .v.good { color: var(--brand); } .stat .v.itp.bad { color: var(--bad); }
+
+      table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+      th, td { text-align: left; padding: 13px 14px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+      tr:last-child td { border-bottom: none; }
+      th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
       td.num { text-align: right; font-variant-numeric: tabular-nums; }
-      .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); font-size: 11px; }
-      .status-active { color: var(--good); } .status-exhausted { color: var(--muted); }
-      .itr-good { color: var(--good); } .itr-bad { color: var(--bad); }
-      .note { color: var(--muted); font-size: 12px; margin-top: 18px; }
-      .empty { color: var(--muted); padding: 30px 0; }
+      .chip { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+      .chip.cpm { background: #1e2a3a; color: #93c5fd; } .chip.cpc { background: #2a2440; color: #c4b5fd; } .chip.cpa { background: #15321f; color: #6ee7b7; }
+      .status-active { color: var(--brand); } .status-exhausted, .status-paused { color: var(--muted); }
+      .empty { text-align: center; padding: 56px 20px; background: var(--panel); border: 1px dashed var(--line); border-radius: 16px; }
+      .empty h3 { margin: 0 0 6px; } .empty p { color: var(--muted); margin: 0 0 18px; }
+
+      /* objective segmented */
+      .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .seg .opt { border: 1px solid var(--line); border-radius: 12px; padding: 12px; cursor: pointer; background: #0d0f13; transition: .15s; }
+      .seg .opt:hover { border-color: #39404d; }
+      .seg .opt.sel { border-color: var(--blue); background: #0e1722; }
+      .seg .opt b { font-size: 14px; } .seg .opt span { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+
+      .preview { margin-top: 16px; background: #0d0f13; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+      .preview .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+      .preview .line { font-family: var(--mono); font-size: 13.5px; color: #cbd5e1; }
+      .preview .line .s { color: var(--muted); }
+
+      .keybox { background: #0d0f13; border: 1px solid var(--warn); border-radius: 12px; padding: 14px; margin: 4px 0 8px; }
+      .keybox code { font-family: var(--mono); font-size: 12.5px; word-break: break-all; color: var(--warn); }
+
+      /* modal */
+      .backdrop { position: fixed; inset: 0; background: rgba(4,5,7,.7); backdrop-filter: blur(3px); display: none; place-items: center; z-index: 40; padding: 20px; }
+      .backdrop.open { display: grid; }
+      .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 24px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
+      .modal h2 { margin: 0 0 4px; font-size: 20px; } .modal .desc { color: var(--muted); font-size: 14px; margin: 0 0 8px; }
+      .modal .foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+      .counter { float: right; font-size: 12px; color: var(--muted); }
+
+      .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 18px; font-size: 14px; opacity: 0; transition: .25s; z-index: 60; }
+      .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      .toast.err { border-color: var(--bad); color: #fecaca; }
+      .toast.ok { border-color: var(--brand); color: #bbf7d0; }
+
+      @media (max-width: 760px) { .cards { grid-template-columns: 1fr 1fr; } .seg { grid-template-columns: 1fr; } table { font-size: 12.5px; } .hide-sm { display: none; } }
     </style>
   </head>
   <body>
-    <header>
-      <h1>Code<span class="b">Cash</span> · Advertiser Console</h1>
-      <div class="sub">You buy <strong>verified</strong> developer attention — quality-gated impressions, clicks, and conversions. Invalid traffic is measured and shown, never billed.</div>
-    </header>
-    <main>
-      <div class="controls">
-        <input id="key" placeholder="x-api-key (from POST /v1/advertisers)" />
-        <button id="load">Load campaigns</button>
-      </div>
-      <div class="cards" id="cards"></div>
-      <table>
-        <thead>
-          <tr>
-            <th>Campaign</th><th>Objective</th><th class="num">Spent</th><th class="num">Budget left</th>
-            <th class="num">Impr.</th><th class="num">Clicks</th><th class="num">Conv.</th>
-            <th class="num">Invalid traffic</th><th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="rows"><tr><td colspan="9" class="empty">Enter your API key and load.</td></tr></tbody>
-      </table>
-      <div class="note">Invalid-traffic rate = billable events that were quality-gated to $0 by CodeCash's fraud layer. A low rate is the trust signal that lets us sell verified attention (see docs/FRAUD.md).</div>
-    </main>
-    <script type="module">
-      const $ = (id) => document.getElementById(id);
-      const url = new URL(location.href);
-      $('key').value = url.searchParams.get('key') || '';
-      const usd = (m) => '$' + (m / 1e6).toFixed(2);
+    <div class="wrap">
+      <nav>
+        <a class="brand" href="/"><span class="logo">C$</span> CodeCash <span class="muted" style="font-weight:500">· Ads Manager</span></a>
+        <div class="navlinks" id="nav-right">
+          <a href="/dashboard">Dashboard</a>
+          <a href="https://github.com/stakksoftware/codecash" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </nav>
 
-      async function load() {
-        const key = $('key').value.trim();
-        const h = { 'x-api-key': key };
-        const stats = await (await fetch('/v1/advertisers/stats', { headers: h })).json();
-        const list = await (await fetch('/v1/advertisers/campaigns', { headers: h })).json();
-        if (!list.campaigns) { $('rows').innerHTML = `<tr><td colspan="9" class="empty">Invalid API key.</td></tr>`; return; }
-        $('cards').innerHTML = `
-          <div class="card"><div class="k">Balance</div><div class="v">${usd(stats.balanceMicros)}</div></div>
-          <div class="card"><div class="k">Spent</div><div class="v">${usd(stats.spentMicros)}</div></div>
-          <div class="card"><div class="k">Impr. / Clicks / Conv.</div><div class="v">${stats.impressions}/${stats.engagements}/${stats.conversions}</div></div>
-          <div class="card"><div class="k">Invalid traffic</div><div class="v itp">${(stats.invalidTrafficRate * 100).toFixed(1)}%</div></div>`;
-        const rows = list.campaigns.map((c) => {
-          const s = c.stats;
+      <!-- ONBOARDING -->
+      <div id="onboard" class="center" style="display:none">
+        <div class="card">
+          <h1>Reach developers in their flow</h1>
+          <p class="lead">Launch a campaign in two minutes. You pay only for verified, quality-gated traffic — invalid traffic is measured and never billed.</p>
+          <div class="tabs">
+            <button id="tab-create" class="active">Create account</button>
+            <button id="tab-key">I have a key</button>
+          </div>
+
+          <div id="pane-create">
+            <label>Company / advertiser name</label>
+            <input id="ob-name" placeholder="Acme Dev Tools" />
+            <label>Email</label>
+            <input id="ob-email" type="email" placeholder="ads@acme.com" />
+            <button class="btn primary" id="ob-create" style="width:100%;margin-top:18px;justify-content:center">Create ads account</button>
+          </div>
+
+          <div id="pane-key" style="display:none">
+            <label>API key</label>
+            <input id="ob-apikey" placeholder="adk_..." />
+            <button class="btn primary" id="ob-signin" style="width:100%;margin-top:18px;justify-content:center">Sign in</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MANAGER -->
+      <div id="manager" style="display:none">
+        <div class="head">
+          <div>
+            <h1>Campaigns</h1>
+            <div class="muted" id="who" style="font-size:13.5px;margin-top:2px"></div>
+          </div>
+          <div class="actions">
+            <button class="btn" id="btn-fund">Add funds</button>
+            <button class="btn primary" id="btn-new">+ New campaign</button>
+          </div>
+        </div>
+
+        <div class="cards">
+          <div class="stat"><div class="k">Balance</div><div class="v good" id="s-balance">—</div></div>
+          <div class="stat"><div class="k">Spent</div><div class="v" id="s-spent">—</div></div>
+          <div class="stat"><div class="k">Impr / Clicks / Conv</div><div class="v" id="s-events">—</div></div>
+          <div class="stat"><div class="k">Invalid traffic</div><div class="v itp" id="s-itp">—</div></div>
+        </div>
+
+        <div id="camp-area"></div>
+      </div>
+    </div>
+
+    <!-- New campaign modal -->
+    <div class="backdrop" id="m-new">
+      <div class="modal">
+        <h2>New campaign</h2>
+        <p class="desc">Choose what you pay for. CodeCash bills only the objective's event, on verified traffic.</p>
+
+        <label>Objective</label>
+        <div class="seg" id="seg">
+          <div class="opt sel" data-obj="cpm"><b>CPM</b><span>per 1,000 views</span></div>
+          <div class="opt" data-obj="cpc"><b>CPC</b><span>per click</span></div>
+          <div class="opt" data-obj="cpa"><b>CPA</b><span>per conversion</span></div>
+        </div>
+
+        <div class="row">
+          <div><label id="bid-label">Bid — per 1,000 impressions (USD)</label><input id="f-bid" type="number" min="0" step="0.01" value="10.00" /></div>
+          <div><label>Total budget (USD)</label><input id="f-budget" type="number" min="0" step="1" value="25" /></div>
+        </div>
+
+        <label>Headline <span class="counter" id="f-count">0 / 120</span></label>
+        <textarea id="f-text" maxlength="120" placeholder="Acme: ship Rust faster → acme.example"></textarea>
+
+        <div class="row">
+          <div><label>Destination URL</label><input id="f-url" placeholder="https://acme.example?ref=codecash" /></div>
+          <div><label>Tags (comma-separated)</label><input id="f-tags" placeholder="rust, go, docker" /></div>
+        </div>
+
+        <div class="preview">
+          <div class="lbl">Preview — how developers see it</div>
+          <div class="line" id="f-preview"><span class="s">· Sponsored by</span> <span id="pv-adv">your brand</span><span class="s">:</span> <span id="pv-text">your headline</span></div>
+        </div>
+
+        <div class="foot">
+          <button class="btn" data-close>Cancel</button>
+          <button class="btn primary" id="f-create">Launch campaign</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add funds modal -->
+    <div class="backdrop" id="m-fund">
+      <div class="modal" style="max-width:400px">
+        <h2>Add funds</h2>
+        <p class="desc">Demo budget top-up. In production this is a Stripe charge.</p>
+        <label>Amount (USD)</label>
+        <input id="fund-amt" type="number" min="1" step="1" value="50" />
+        <div class="foot">
+          <button class="btn" data-close>Cancel</button>
+          <button class="btn primary" id="fund-go">Add funds</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script type="module">
+      const $ = (s) => document.querySelector(s);
+      const API = location.origin;
+      const LS_KEY = 'cc_adv_key', LS_NAME = 'cc_adv_name';
+      const usd = (m) => '$' + (Number(m || 0) / 1e6).toFixed(2);
+      const toMicros = (d) => Math.round(Number(d) * 1e6);
+
+      let apiKey = localStorage.getItem(LS_KEY) || '';
+      let advName = localStorage.getItem(LS_NAME) || '';
+      let objective = 'cpm';
+
+      function toast(msg, kind) {
+        const t = $('#toast'); t.textContent = msg; t.className = 'toast show ' + (kind || '');
+        setTimeout(() => (t.className = 'toast'), 2600);
+      }
+      async function api(method, path, { body, key } = {}) {
+        const res = await fetch(API + path, {
+          method,
+          headers: { 'content-type': 'application/json', ...(key ? { 'x-api-key': key } : {}) },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status) + (json.details ? ': ' + json.details.join('; ') : ''));
+        return json;
+      }
+      const show = (id, on) => ($(id).style.display = on ? '' : 'none');
+      const openModal = (id) => $(id).classList.add('open');
+      const closeModal = (id) => $(id).classList.remove('open');
+
+      // ---------- onboarding ----------
+      $('#tab-create').onclick = () => { $('#tab-create').classList.add('active'); $('#tab-key').classList.remove('active'); show('#pane-create', true); show('#pane-key', false); };
+      $('#tab-key').onclick = () => { $('#tab-key').classList.add('active'); $('#tab-create').classList.remove('active'); show('#pane-create', false); show('#pane-key', true); };
+
+      $('#ob-create').onclick = async () => {
+        const name = $('#ob-name').value.trim(), email = $('#ob-email').value.trim();
+        if (!name || !email) return toast('Name and email required', 'err');
+        $('#ob-create').disabled = true;
+        try {
+          const r = await api('POST', '/v1/advertisers', { body: { name, email } });
+          apiKey = r.apiKey; advName = name;
+          localStorage.setItem(LS_KEY, apiKey); localStorage.setItem(LS_NAME, advName);
+          revealKey(apiKey);
+        } catch (e) { toast(e.message, 'err'); $('#ob-create').disabled = false; }
+      };
+      $('#ob-signin').onclick = async () => {
+        const k = $('#ob-apikey').value.trim();
+        if (!k) return toast('Paste your API key', 'err');
+        try {
+          const s = await api('GET', '/v1/advertisers/stats', { key: k });
+          apiKey = k; advName = s.name || 'Advertiser';
+          localStorage.setItem(LS_KEY, apiKey); localStorage.setItem(LS_NAME, advName);
+          enterManager();
+        } catch (e) { toast('Invalid key', 'err'); }
+      };
+
+      function revealKey(key) {
+        const card = document.querySelector('#onboard .card');
+        card.innerHTML = `
+          <h1>You're in 🎉</h1>
+          <p class="lead">Save your API key — it's your credential for the CLI and other devices. We won't show it again.</p>
+          <div class="keybox"><code>${key}</code></div>
+          <button class="btn" id="copykey" style="width:100%;justify-content:center;margin-bottom:10px">Copy key</button>
+          <button class="btn primary" id="gomgr" style="width:100%;justify-content:center">Continue to Ads Manager →</button>`;
+        $('#copykey').onclick = async () => { try { await navigator.clipboard.writeText(key); toast('Copied', 'ok'); } catch (e) {} };
+        $('#gomgr').onclick = enterManager;
+      }
+
+      $('#nav-right').insertAdjacentHTML('afterbegin', '<button id="signout" style="display:none">Sign out</button>');
+      $('#signout').onclick = () => { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_NAME); location.reload(); };
+
+      // ---------- manager ----------
+      async function enterManager() {
+        show('#onboard', false); show('#manager', true); $('#signout').style.display = '';
+        $('#who').textContent = advName + ' · key ' + apiKey.slice(0, 10) + '…';
+        await refresh();
+      }
+      async function refresh() {
+        try {
+          const [stats, list] = await Promise.all([
+            api('GET', '/v1/advertisers/stats', { key: apiKey }),
+            api('GET', '/v1/advertisers/campaigns', { key: apiKey }),
+          ]);
+          $('#s-balance').textContent = usd(stats.balanceMicros);
+          $('#s-spent').textContent = usd(stats.spentMicros);
+          $('#s-events').textContent = `${stats.impressions}/${stats.engagements}/${stats.conversions}`;
+          const itp = $('#s-itp'); itp.textContent = (stats.invalidTrafficRate * 100).toFixed(1) + '%';
+          itp.classList.toggle('bad', stats.invalidTrafficRate > 0.1);
+          renderCampaigns(list.campaigns || []);
+        } catch (e) { toast(e.message, 'err'); }
+      }
+      function renderCampaigns(camps) {
+        const area = $('#camp-area');
+        if (!camps.length) {
+          area.innerHTML = `<div class="empty"><h3>No campaigns yet</h3><p>Launch your first campaign to start reaching developers.</p><button class="btn primary" id="empty-new">+ New campaign</button></div>`;
+          $('#empty-new').onclick = () => openModal('#m-new');
+          return;
+        }
+        const rows = camps.map((c) => {
+          const s = c.stats, obj = c.objective || 'cpm';
           const itr = (s.invalidTrafficRate * 100).toFixed(1);
           return `<tr>
-            <td>${c.advertiser}<br><span class="chip">${c.text.slice(0, 40)}</span></td>
-            <td><span class="chip">${c.objective || 'cpm'}</span></td>
+            <td><div>${esc(c.advertiser)}</div><div class="muted hide-sm" style="font-size:12px">${esc(c.text)}</div></td>
+            <td><span class="chip ${obj}">${obj.toUpperCase()}</span></td>
             <td class="num">${usd(s.spentMicros)}</td>
-            <td class="num">${usd(c.remainingBudgetMicros)}</td>
-            <td class="num">${s.impressions}</td><td class="num">${s.engagements}</td><td class="num">${s.conversions}</td>
-            <td class="num ${s.invalidTrafficRate > 0.1 ? 'itr-bad' : 'itr-good'}">${itr}%</td>
+            <td class="num hide-sm">${usd(c.remainingBudgetMicros)}</td>
+            <td class="num">${s.impressions}/${s.engagements}/${s.conversions}</td>
+            <td class="num">${itr}%</td>
             <td class="status-${c.status}">${c.status}</td>
           </tr>`;
         }).join('');
-        $('rows').innerHTML = rows || `<tr><td colspan="9" class="empty">No campaigns yet.</td></tr>`;
+        area.innerHTML = `<table><thead><tr>
+          <th>Campaign</th><th>Type</th><th class="num">Spent</th><th class="num hide-sm">Budget left</th>
+          <th class="num">I / C / Cv</th><th class="num">Invalid</th><th>Status</th>
+        </tr></thead><tbody>${rows}</tbody></table>`;
       }
-      $('load').addEventListener('click', load);
-      if ($('key').value) load();
+      const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+      // ---------- new campaign ----------
+      const BID_LABELS = { cpm: 'Bid — per 1,000 impressions (USD)', cpc: 'Bid — per click (USD)', cpa: 'Bid — per conversion / bounty (USD)' };
+      const BID_DEFAULT = { cpm: '10.00', cpc: '0.30', cpa: '3.00' };
+      $('#seg').addEventListener('click', (e) => {
+        const opt = e.target.closest('.opt'); if (!opt) return;
+        objective = opt.dataset.obj;
+        document.querySelectorAll('#seg .opt').forEach((o) => o.classList.toggle('sel', o === opt));
+        $('#bid-label').textContent = BID_LABELS[objective];
+        $('#f-bid').value = BID_DEFAULT[objective];
+      });
+      function syncPreview() {
+        $('#pv-adv').textContent = advName || 'your brand';
+        $('#pv-text').textContent = $('#f-text').value || 'your headline';
+        $('#f-count').textContent = $('#f-text').value.length + ' / 120';
+      }
+      $('#f-text').addEventListener('input', syncPreview);
+      $('#btn-new').onclick = () => { syncPreview(); openModal('#m-new'); };
+      $('#f-create').onclick = async () => {
+        const text = $('#f-text').value.trim();
+        const bid = Number($('#f-bid').value), budget = Number($('#f-budget').value);
+        if (!text) return toast('Add a headline', 'err');
+        if (!(bid > 0)) return toast('Bid must be greater than 0', 'err');
+        const tags = $('#f-tags').value.split(',').map((s) => s.trim()).filter(Boolean);
+        $('#f-create').disabled = true;
+        try {
+          await api('POST', '/v1/advertisers/campaigns', { key: apiKey, body: {
+            advertiser: advName, objective, bidMicros: toMicros(bid), budgetMicros: toMicros(budget),
+            text, url: $('#f-url').value.trim() || undefined, tags: tags.length ? tags : undefined,
+            model: objective === 'cpa' ? 'affiliate' : 'sponsor',
+          } });
+          closeModal('#m-new'); $('#f-text').value = ''; toast('Campaign launched', 'ok');
+          await refresh();
+        } catch (e) { toast(e.message, 'err'); }
+        $('#f-create').disabled = false;
+      };
+
+      // ---------- funds ----------
+      $('#btn-fund').onclick = () => openModal('#m-fund');
+      $('#fund-go').onclick = async () => {
+        const amt = Number($('#fund-amt').value);
+        if (!(amt > 0)) return toast('Enter an amount', 'err');
+        $('#fund-go').disabled = true;
+        try { await api('POST', '/v1/advertisers/fund', { key: apiKey, body: { amountMicros: toMicros(amt) } }); closeModal('#m-fund'); toast('Funds added', 'ok'); await refresh(); }
+        catch (e) { toast(e.message, 'err'); }
+        $('#fund-go').disabled = false;
+      };
+
+      document.querySelectorAll('[data-close]').forEach((b) => (b.onclick = () => document.querySelectorAll('.backdrop').forEach((m) => m.classList.remove('open'))));
+      document.querySelectorAll('.backdrop').forEach((bd) => bd.addEventListener('click', (e) => { if (e.target === bd) bd.classList.remove('open'); }));
+
+      // ---------- boot ----------
+      (async function boot() {
+        if (apiKey) {
+          try { const s = await api('GET', '/v1/advertisers/stats', { key: apiKey }); advName = s.name || advName; enterManager(); return; }
+          catch (e) { localStorage.removeItem(LS_KEY); }
+        }
+        show('#onboard', true);
+      })();
     </script>
   </body>
 </html>

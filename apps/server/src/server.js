@@ -404,21 +404,29 @@ export const handlers = {
     send(res, 200, { ok: true, service: 'codecash-server', bundleVersion: BUNDLE_VERSION, backend: store.backendName });
   },
 
+  landing(req, res) {
+    serveStatic(res, 'landing.html', 'text/html; charset=utf-8');
+  },
+
   dashboard(req, res) {
-    serveHtml(res, 'dashboard.html');
+    serveStatic(res, 'dashboard.html', 'text/html; charset=utf-8');
   },
 
   advertiserDashboard(req, res) {
-    serveHtml(res, 'advertiser.html');
+    serveStatic(res, 'advertiser.html', 'text/html; charset=utf-8');
+  },
+
+  installScript(req, res) {
+    serveStatic(res, 'install.sh', 'text/plain; charset=utf-8');
   },
 };
 
-function serveHtml(res, name) {
+function serveStatic(res, name, contentType) {
   for (const candidate of [path.join(here, '..', 'public', name), path.join(process.cwd(), 'apps/server/public', name)]) {
     try {
-      const html = fs.readFileSync(candidate);
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      return res.end(html);
+      const data = fs.readFileSync(candidate);
+      res.writeHead(200, { 'content-type': contentType, 'cache-control': 'public, max-age=300' });
+      return res.end(data);
     } catch {
       /* try next */
     }
@@ -443,8 +451,10 @@ export async function handle(req, res) {
 
     if (m === 'OPTIONS') return send(res, 204, {});
     if (p === '/healthz') return handlers.health(req, res);
-    if (p === '/' || p === '/dashboard') return handlers.dashboard(req, res);
-    if (p === '/advertiser') return handlers.advertiserDashboard(req, res);
+    if (p === '/' || p === '/home') return handlers.landing(req, res);
+    if (p === '/dashboard') return handlers.dashboard(req, res);
+    if (p === '/advertiser' || p === '/ads') return handlers.advertiserDashboard(req, res);
+    if (p === '/install.sh') return handlers.installScript(req, res);
     if (p === '/.well-known/codecash-receipts.json') return handlers.wellKnownKeys(req, res);
 
     if (p === '/v1/auth/login' && m === 'POST') return handlers.login(req, res);
