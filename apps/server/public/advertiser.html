@@ -4,224 +4,304 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CodeCash — Ads Manager</title>
-    <meta name="theme-color" content="#0e9f6e" />
+    <meta name="theme-color" content="#0866ff" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e9f6e'/%3E%3Crect x='7' y='7' width='18' height='18' rx='5' fill='none' stroke='white' stroke-opacity='.92' stroke-width='3'/%3E%3C/svg%3E" />
     <script>
       (function () { try { var t = localStorage.getItem('cc_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
     </script>
     <style>
       :root {
-        --paper: #ffffff; --bg: #f7f7f5; --ink: #111113; --ink2: #52525b; --muted: #8a8a93;
-        --line: rgba(17,17,19,.09); --line2: rgba(17,17,19,.06);
-        --accent: #0e9f6e; --accent-soft: #edf7f1; --bad: #dc2626; --warn: #b45309;
-        --th: #fcfcfb;
-        --r: 12px; --rl: 18px;
-        --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+        --app: #f0f2f5; --panel: #ffffff; --raised: #ffffff; --ink: #1c1e21; --ink2: #606770; --muted: #8a8d91;
+        --line: #dadde1; --line2: #e9ebee; --hover: #f5f6f7; --blue: #0866ff; --blue-soft: #e7f0ff;
+        --green: #0e9f6e; --green-soft: #e7f6ef; --amber: #b26b00; --amber-soft: #fbf0dd; --red: #dc2626;
+        --sb: #ffffff; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.06);
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, system-ui, sans-serif;
         --mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-        --shadow: 0 1px 2px rgba(17,17,19,.04), 0 12px 40px rgba(17,17,19,.06);
       }
       html[data-theme="dark"] {
-        --paper: #15181e; --bg: #0b0c0e; --ink: #e9edf3; --ink2: #aab2bf; --muted: #79828f;
-        --line: rgba(255,255,255,.10); --line2: rgba(255,255,255,.06);
-        --accent: #34d399; --accent-soft: rgba(52,211,153,.13); --bad: #f87171; --warn: #fbbf24;
-        --th: #181b22;
-        --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 50px rgba(0,0,0,.5);
+        --app: #18191a; --panel: #242526; --raised: #2a2b2d; --ink: #e4e6eb; --ink2: #b0b3b8; --muted: #8a8d91;
+        --line: #3a3b3c; --line2: #303132; --hover: #3a3b3c; --blue: #2d88ff; --blue-soft: #1c2a3f;
+        --green: #34d399; --green-soft: #16301f; --amber: #f5b04a; --amber-soft: #3a2e16; --red: #f87171;
+        --sb: #242526; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 40px rgba(0,0,0,.5);
       }
       * { box-sizing: border-box; }
-      body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.5; -webkit-font-smoothing: antialiased; transition: background .3s, color .3s; }
-      a { color: inherit; text-decoration: none; }
-      .wrap { max-width: 940px; margin: 0 auto; padding: 0 28px; }
+      body { margin: 0; background: var(--app); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.4; -webkit-font-smoothing: antialiased; }
+      a { color: var(--blue); text-decoration: none; }
       .muted { color: var(--muted); } .tnum { font-variant-numeric: tabular-nums; }
-      ::selection { background: var(--accent-soft); }
-      @keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-      .reveal { animation: up .5s cubic-bezier(.2,.7,.2,1) both; }
+      button { font-family: inherit; }
 
-      header.nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 75%, transparent); backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--line); }
-      .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
-      .brand { display: flex; align-items: center; gap: 9px; font-weight: 560; font-size: 15.5px; letter-spacing: -.01em; }
-      .mark { width: 22px; height: 22px; border-radius: 7px; background: var(--accent); box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--paper) 88%, transparent); }
-      .brand .tag { color: var(--muted); font-weight: 450; }
-      .navr { display: flex; align-items: center; gap: 8px; }
-      .navr a, .navr button { color: var(--ink2); font-size: 14px; padding: 8px 12px; border-radius: 9px; background: none; border: none; font: inherit; cursor: pointer; }
-      .navr a:hover, .navr button:hover { color: var(--ink); background: var(--paper); }
-      .iconbtn { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; }
-      .bal { font-size: 14px; color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; background: var(--paper); }
-      .bal b { color: var(--accent); }
+      /* ---------- onboarding ---------- */
+      .center { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+      .card { background: var(--panel); border-radius: 14px; padding: 32px; width: 100%; max-width: 410px; box-shadow: var(--shadow); }
+      .card .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 18px; margin-bottom: 18px; }
+      .card .mark { width: 26px; height: 26px; border-radius: 8px; background: var(--green); box-shadow: inset 0 0 0 4px var(--panel); }
+      .card h1 { font-size: 21px; margin: 0 0 6px; letter-spacing: -.02em; }
+      .card .lead { color: var(--ink2); margin: 0 0 18px; }
+      .switch2 { text-align: center; margin-top: 16px; font-size: 13.5px; color: var(--muted); }
+      .switch2 a { cursor: pointer; font-weight: 600; }
+      .keybox { background: var(--app); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 4px 0 10px; }
+      .keybox code { font-family: var(--mono); font-size: 12.5px; word-break: break-all; }
+      .keybox .w { display: block; color: var(--amber); font-size: 11.5px; margin-bottom: 7px; font-weight: 600; }
 
-      .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: 10px; font: inherit; font-size: 14px; font-weight: 550; cursor: pointer; border: 1px solid var(--line); background: var(--paper); color: var(--ink); transition: .15s; }
-      .btn:hover { background: var(--bg); } .btn.accent { background: var(--accent); color: #fff; border-color: transparent; } .btn.accent:hover { filter: brightness(1.05); }
-      .btn:disabled { opacity: .45; cursor: not-allowed; }
-      label { display: block; font-size: 12.5px; color: var(--ink2); font-weight: 500; margin: 16px 0 6px; }
-      input, textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--ink); border-radius: 10px; padding: 11px 13px; font: inherit; font-size: 14.5px; transition: .15s; }
-      input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--paper); }
-      textarea { resize: vertical; min-height: 58px; }
-      .money { position: relative; } .money input { padding-left: 26px; } .money .sym { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14.5px; }
-      .row { display: flex; gap: 12px; } .row > * { flex: 1; }
+      label { display: block; font-size: 12px; color: var(--ink2); font-weight: 600; margin: 14px 0 6px; }
+      input, textarea, select { width: 100%; background: var(--panel); border: 1px solid var(--line); color: var(--ink); border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 14px; }
+      input:focus, textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+      textarea { resize: vertical; min-height: 54px; }
+      .money { position: relative; } .money input { padding-left: 24px; } .money .sym { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-      .center { min-height: calc(100vh - 60px); display: grid; place-items: center; padding: 30px 0; }
-      .card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--rl); padding: 34px; width: 100%; max-width: 420px; box-shadow: var(--shadow); }
-      .card h1 { font-size: 23px; letter-spacing: -.03em; font-weight: 600; margin: 0 0 6px; }
-      .card .lead { color: var(--ink2); margin: 0 0 18px; font-size: 14.5px; }
-      .switch { text-align: center; margin-top: 16px; font-size: 13.5px; color: var(--muted); }
-      .switch a { color: var(--accent); font-weight: 500; cursor: pointer; }
-      .keybox { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 4px 0 10px; }
-      .keybox code { font-family: var(--mono); font-size: 12.5px; word-break: break-all; color: var(--ink); }
-      .keybox .w { display: block; color: var(--warn); font-size: 11.5px; margin-bottom: 7px; font-weight: 500; }
+      .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); transition: .12s; }
+      .btn:hover { background: var(--hover); }
+      .btn.primary { background: var(--green); color: #fff; border-color: transparent; } .btn.primary:hover { filter: brightness(1.05); background: var(--green); }
+      .btn.blue { background: var(--blue); color: #fff; border-color: transparent; } .btn.blue:hover { filter: brightness(1.05); background: var(--blue); }
+      .btn:disabled { opacity: .5; cursor: not-allowed; }
+      .btn.sm { padding: 6px 11px; font-size: 13px; }
 
-      .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 34px 0 22px; flex-wrap: wrap; }
-      .head h1 { font-size: 27px; letter-spacing: -.035em; font-weight: 600; margin: 0; }
-      .head .who { color: var(--muted); font-size: 13.5px; margin-top: 3px; }
-      .head .actions { display: flex; gap: 9px; }
+      /* ---------- app shell ---------- */
+      .shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+      .sidebar { background: var(--sb); border-right: 1px solid var(--line); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+      .sb-brand { display: flex; align-items: center; gap: 9px; padding: 16px 18px; font-weight: 700; font-size: 16px; border-bottom: 1px solid var(--line2); }
+      .sb-brand .mark { width: 24px; height: 24px; border-radius: 7px; background: var(--green); box-shadow: inset 0 0 0 4px var(--sb); }
+      .sb-brand .tag { color: var(--muted); font-weight: 500; font-size: 13px; }
+      .acct { margin: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+      .acct .nm { font-weight: 600; font-size: 13.5px; display: flex; align-items: center; gap: 6px; }
+      .acct .av { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), #6aa3ff); display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 700; }
+      .acct .bal { margin-top: 8px; font-size: 12px; color: var(--ink2); }
+      .acct .bal b { color: var(--green); font-size: 15px; display: block; margin-top: 1px; }
+      .nav { padding: 6px 8px; flex: 1; }
+      .nav a { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 8px; color: var(--ink2); font-weight: 600; font-size: 13.5px; cursor: pointer; }
+      .nav a:hover { background: var(--hover); color: var(--ink); }
+      .nav a.active { background: var(--blue-soft); color: var(--blue); }
+      .nav a.soon { opacity: .55; cursor: default; } .nav a.soon:hover { background: none; color: var(--ink2); }
+      .nav a .pill { margin-left: auto; font-size: 10px; background: var(--line2); color: var(--muted); border-radius: 5px; padding: 1px 5px; font-weight: 600; }
+      .sb-foot { padding: 10px; border-top: 1px solid var(--line2); display: flex; align-items: center; gap: 6px; }
+      .sb-foot a, .sb-foot button { color: var(--ink2); font-size: 13px; padding: 7px 9px; border-radius: 7px; background: none; border: none; cursor: pointer; }
+      .sb-foot a:hover, .sb-foot button:hover { background: var(--hover); color: var(--ink); }
+      .iconbtn { display: grid; place-items: center; width: 32px; height: 32px; padding: 0 !important; }
 
-      .strip { display: flex; background: var(--paper); border: 1px solid var(--line); border-radius: var(--rl); overflow: hidden; margin-bottom: 22px; }
-      .strip .s { flex: 1; padding: 16px 20px; border-right: 1px solid var(--line); } .strip .s:last-child { border-right: none; }
-      .strip .k { font-size: 11.5px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
-      .strip .v { font-size: 21px; margin-top: 5px; letter-spacing: -.02em; } .strip .v.good { color: var(--accent); } .strip .v.bad { color: var(--bad); }
+      .content { min-width: 0; display: flex; flex-direction: column; }
+      .topbar { display: flex; align-items: center; gap: 12px; padding: 14px 22px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 10; }
+      .topbar h1 { font-size: 19px; margin: 0; letter-spacing: -.02em; flex: none; }
+      .search { flex: 1; max-width: 320px; position: relative; }
+      .search input { padding-left: 32px; border-radius: 999px; background: var(--app); }
+      .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+      .chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; color: var(--ink2); background: var(--panel); cursor: default; }
+      .spacer { flex: 1; }
 
-      .panel { background: var(--paper); border: 1px solid var(--line); border-radius: var(--rl); overflow: hidden; }
-      table { width: 100%; border-collapse: collapse; }
-      th, td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--line2); font-size: 13.5px; }
-      tr:last-child td { border-bottom: none; }
-      tbody tr { transition: background .12s; } tbody tr:hover { background: var(--bg); }
-      thead th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; background: var(--th); }
-      td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-      .cname { font-weight: 500; letter-spacing: -.01em; } .csub { color: var(--muted); font-size: 12px; margin-top: 1px; }
-      .obj { font-family: var(--mono); font-size: 11px; color: var(--ink2); letter-spacing: .03em; }
-      .st { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; } .st .dot { width: 7px; height: 7px; border-radius: 50%; }
-      .st.active .dot { background: var(--accent); } .st.exhausted .dot, .st.paused .dot { background: var(--muted); }
-      .st.active { color: var(--ink); } .st.exhausted, .st.paused { color: var(--muted); }
-      .rowacts { display: inline-flex; gap: 6px; justify-content: flex-end; }
-      .rowbtn { border: 1px solid var(--line); background: var(--paper); color: var(--ink2); border-radius: 8px; padding: 5px 11px; font: inherit; font-size: 12px; cursor: pointer; transition: .12s; }
-      .rowbtn:hover { color: var(--ink); border-color: color-mix(in srgb, var(--ink) 25%, transparent); }
-      .rowbtn:disabled { opacity: .45; cursor: not-allowed; }
-      .rowbtn.danger:hover { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+      .body { padding: 18px 22px 40px; overflow-x: hidden; }
+      .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
+      .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+      .kpi .k { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+      .kpi .v { font-size: 20px; margin-top: 4px; letter-spacing: -.01em; } .kpi .v.green { color: var(--green); } .kpi .v.amber { color: var(--amber); }
 
-      .empty { text-align: center; padding: 64px 20px; }
-      .empty .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; margin: 0 auto 14px; }
-      .empty h3 { margin: 0 0 5px; font-size: 17px; letter-spacing: -.02em; } .empty p { color: var(--ink2); margin: 0 0 18px; font-size: 14px; }
-      .spin { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--accent); margin: 0 auto; animation: sp .7s linear infinite; }
+      .tabs { display: flex; gap: 4px; margin-bottom: 0; border-bottom: 1px solid var(--line); }
+      .tabs .t { padding: 9px 14px; font-size: 13.5px; font-weight: 600; color: var(--ink2); border-bottom: 2px solid transparent; cursor: pointer; }
+      .tabs .t.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+      .bulkbar { display: none; align-items: center; gap: 8px; padding: 9px 14px; background: var(--blue-soft); border: 1px solid var(--blue); border-bottom: none; border-radius: 10px 10px 0 0; }
+      .bulkbar.show { display: flex; }
+      .bulkbar .n { font-weight: 600; font-size: 13px; color: var(--blue); margin-right: 4px; }
+
+      .tablewrap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+      .bulkbar.show + .tablewrap { border-radius: 0 0 10px 10px; }
+      table { width: 100%; border-collapse: collapse; min-width: 920px; }
+      thead th { position: sticky; top: 0; background: var(--panel); text-align: left; padding: 11px 12px; font-size: 11.5px; color: var(--ink2); font-weight: 600; border-bottom: 1px solid var(--line); white-space: nowrap; }
+      th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+      tbody td { padding: 12px; border-bottom: 1px solid var(--line2); font-size: 13.5px; vertical-align: middle; white-space: nowrap; }
+      tbody tr:hover { background: var(--hover); }
+      tbody tr.sel { background: var(--blue-soft); }
+      tfoot td { padding: 12px; font-weight: 600; font-size: 13px; border-top: 2px solid var(--line); background: var(--panel); }
+      .cb { width: 16px; height: 16px; accent-color: var(--blue); cursor: pointer; }
+      .cname { font-weight: 600; color: var(--ink); }
+      .cname a { color: var(--blue); }
+      .crow-actions { margin-top: 3px; font-size: 12px; visibility: hidden; }
+      tr:hover .crow-actions { visibility: visible; }
+      .crow-actions a { cursor: pointer; margin-right: 10px; }
+      .obj { font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+      .deliv { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: 12.5px; }
+      .deliv .dot { width: 8px; height: 8px; border-radius: 50%; }
+      .deliv.active { color: var(--green); } .deliv.active .dot { background: var(--green); }
+      .deliv.paused { color: var(--muted); } .deliv.paused .dot { background: var(--muted); }
+      .deliv.exhausted { color: var(--amber); } .deliv.exhausted .dot { background: var(--amber); }
+
+      /* on/off toggle */
+      .tg { width: 38px; height: 22px; border-radius: 999px; background: var(--line); border: none; position: relative; cursor: pointer; transition: background .15s; padding: 0; flex: none; }
+      .tg::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+      .tg.on { background: var(--green); } .tg.on::after { transform: translateX(16px); }
+      .tg:disabled { opacity: .5; cursor: not-allowed; }
+
+      .itr-ok { color: var(--green); } .itr-bad { color: var(--red); }
+      .empty { text-align: center; padding: 60px 20px; }
+      .empty .ic { width: 46px; height: 46px; border-radius: 12px; background: var(--green-soft); color: var(--green); display: grid; place-items: center; margin: 0 auto 14px; }
+      .empty h3 { margin: 0 0 5px; font-size: 17px; } .empty p { color: var(--ink2); margin: 0 0 18px; }
+      .spin { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--blue); margin: 0 auto; animation: sp .7s linear infinite; }
       @keyframes sp { to { transform: rotate(360deg); } }
 
-      .scrim { position: fixed; inset: 0; background: rgba(8,9,11,.4); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: .22s; z-index: 40; }
-      .scrim.open { opacity: 1; pointer-events: auto; }
-      .drawer { position: fixed; top: 0; right: 0; height: 100%; width: 460px; max-width: 92vw; background: var(--paper); border-left: 1px solid var(--line); box-shadow: -20px 0 60px rgba(8,9,11,.3); transform: translateX(100%); transition: transform .26s cubic-bezier(.4,0,.2,1); z-index: 50; display: flex; flex-direction: column; }
-      .drawer.open { transform: none; }
-      .drawer .dh { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--line); }
-      .drawer .dh h2 { font-size: 18px; letter-spacing: -.02em; margin: 0; font-weight: 600; }
-      .drawer .x { border: none; background: none; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px; }
-      .drawer .db { padding: 4px 24px 24px; overflow-y: auto; flex: 1; }
-      .drawer .df { padding: 16px 24px; border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: flex-end; }
-      .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-      .seg .o { border: 1px solid var(--line); border-radius: 11px; padding: 11px 10px; cursor: pointer; text-align: center; transition: .14s; background: var(--bg); }
-      .seg .o:hover { border-color: color-mix(in srgb, var(--ink) 18%, transparent); }
-      .seg .o.sel { border-color: var(--accent); background: var(--accent-soft); }
-      .seg .o b { font-size: 13.5px; font-weight: 600; } .seg .o span { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
-      .hint { font-size: 12.5px; color: var(--ink2); margin-top: 8px; } .hint b { color: var(--ink); font-weight: 600; }
+      /* ---------- modal (create / edit / fund) ---------- */
+      .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; place-items: center; z-index: 50; padding: 20px; }
+      .scrim.open { display: grid; }
+      .modal { background: var(--panel); border-radius: 14px; width: 100%; max-width: 620px; max-height: 92vh; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+      .modal.sm { max-width: 400px; }
+      .mh { display: flex; align-items: center; justify-content: space-between; padding: 16px 22px; border-bottom: 1px solid var(--line); }
+      .mh h2 { margin: 0; font-size: 17px; } .mh .x { border: none; background: none; font-size: 22px; color: var(--muted); cursor: pointer; }
+      .mb { padding: 20px 22px; overflow-y: auto; }
+      .mf { display: flex; gap: 10px; justify-content: space-between; align-items: center; padding: 14px 22px; border-top: 1px solid var(--line); }
+
+      .objs { display: grid; gap: 10px; }
+      .objcard { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; transition: .12s; }
+      .objcard:hover { border-color: var(--blue); background: var(--blue-soft); }
+      .objcard .oi { width: 40px; height: 40px; border-radius: 10px; background: var(--blue-soft); color: var(--blue); display: grid; place-items: center; flex: none; }
+      .objcard b { font-size: 15px; } .objcard .meta { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 6px; }
+      .objcard p { margin: 3px 0 0; color: var(--ink2); font-size: 13px; }
+      .hint { font-size: 12.5px; color: var(--ink2); margin-top: 8px; } .hint b { color: var(--ink); }
       .counter { float: right; font-size: 11.5px; color: var(--muted); font-weight: 400; }
-      .term { margin-top: 16px; background: #0c0d10; border-radius: 12px; padding: 14px 16px; font-family: var(--mono); font-size: 12.5px; }
-      .term .t1 { color: #6b7280; } .term .t2 { color: #e5e7eb; margin-top: 6px; } .term .t2 .s { color: #6b7280; } .term .t2 .a { color: #34d399; }
+      .term { margin-top: 16px; background: #0c0d10; border-radius: 10px; padding: 13px 15px; font-family: var(--mono); font-size: 12.5px; }
+      .term .t1 { color: #6b7280; } .term .t2 { color: #e5e7eb; margin-top: 5px; } .term .t2 .s { color: #6b7280; } .term .t2 .a { color: #34d399; }
+      .readobj { display: inline-flex; align-items: center; gap: 8px; background: var(--app); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
 
-      .modal-scrim { position: fixed; inset: 0; background: rgba(8,9,11,.4); backdrop-filter: blur(2px); display: none; place-items: center; z-index: 60; padding: 20px; }
-      .modal-scrim.open { display: grid; }
-      .modal { background: var(--paper); border: 1px solid var(--line); border-radius: var(--rl); padding: 24px; width: 100%; max-width: 380px; box-shadow: var(--shadow); }
-      .modal h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: -.02em; } .modal .desc { color: var(--muted); font-size: 13.5px; margin: 0 0 6px; }
-      .modal .mf { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-
-      .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px); background: var(--ink); color: var(--bg); border-radius: 11px; padding: 11px 18px; font-size: 14px; opacity: 0; transition: .24s; z-index: 80; box-shadow: var(--shadow); }
+      .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(16px); background: var(--ink); color: var(--panel); border-radius: 9px; padding: 11px 18px; font-size: 14px; opacity: 0; transition: .22s; z-index: 80; box-shadow: var(--shadow); }
       .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-      .toast.err { background: var(--bad); color: #fff; } .toast.ok { background: var(--accent); color: #fff; }
+      .toast.err { background: var(--red); color: #fff; } .toast.ok { background: var(--green); color: #fff; }
 
-      @media (max-width: 700px) { .strip { flex-wrap: wrap; } .strip .s { flex: 1 0 50%; border-bottom: 1px solid var(--line); } .hide-sm { display: none; } }
+      @media (max-width: 880px) {
+        .shell { grid-template-columns: 1fr; } .sidebar { display: none; } .kpis { grid-template-columns: repeat(2, 1fr); }
+      }
     </style>
   </head>
   <body>
-    <header class="nav">
-      <div class="wrap">
-        <a class="brand" href="/"><span class="mark"></span> codecash <span class="tag">· ads</span></a>
-        <div class="navr" id="navr">
-          <a href="/dashboard">Dashboard</a>
-          <a href="https://github.com/stakksoftware/codecash" target="_blank" rel="noopener">GitHub</a>
-          <button class="iconbtn" id="theme" title="Toggle theme" aria-label="Toggle theme"></button>
-        </div>
-      </div>
-    </header>
-
+    <!-- ONBOARDING -->
     <div id="onboard" class="center" style="display:none">
-      <div class="card reveal" id="ob-card">
+      <div class="card" id="ob-card">
+        <div class="brand"><span class="mark"></span> CodeCash Ads</div>
         <h1>Advertise on CodeCash</h1>
         <p class="lead">Reach developers in their flow. Pay only for verified, quality-gated traffic.</p>
         <div id="pane-create">
-          <label>Company name</label>
+          <label>Business name</label>
           <input id="ob-name" placeholder="Acme Dev Tools" autocomplete="organization" />
           <label>Email</label>
           <input id="ob-email" type="email" placeholder="ads@acme.com" autocomplete="email" />
-          <button class="btn accent" id="ob-create" style="width:100%;justify-content:center;margin-top:20px">Create account</button>
-          <div class="switch">Already have an API key? <a id="to-key">Sign in</a></div>
+          <button class="btn blue" id="ob-create" style="width:100%;justify-content:center;margin-top:18px">Create ad account</button>
+          <div class="switch2">Already have an API key? <a id="to-key">Log in</a></div>
         </div>
         <div id="pane-key" style="display:none">
           <label>API key</label>
           <input id="ob-apikey" placeholder="adk_…" />
-          <button class="btn accent" id="ob-signin" style="width:100%;justify-content:center;margin-top:20px">Sign in</button>
-          <div class="switch">Need an account? <a id="to-create">Create one</a></div>
+          <button class="btn blue" id="ob-signin" style="width:100%;justify-content:center;margin-top:18px">Log in</button>
+          <div class="switch2">Need an account? <a id="to-create">Create one</a></div>
         </div>
       </div>
     </div>
 
-    <div id="app" class="wrap" style="display:none">
-      <div class="head reveal">
-        <div><h1>Campaigns</h1><div class="who" id="who"></div></div>
-        <div class="actions">
+    <!-- APP -->
+    <div id="app" class="shell" style="display:none">
+      <aside class="sidebar">
+        <div class="sb-brand"><span class="mark"></span> CodeCash <span class="tag">Ads</span></div>
+        <div class="acct">
+          <div class="nm"><span class="av" id="av">A</span> <span id="acct-name">Account</span></div>
+          <div class="bal">Account balance <b id="acct-bal">$0.00</b></div>
+        </div>
+        <nav class="nav">
+          <a class="active" id="nav-campaigns"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="11" height="6" rx="1.5"/></svg> Campaigns</a>
+          <a class="soon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3 2.7-5 6-5s6 2 6 5"/><path d="M16 5a3 3 0 010 6"/></svg> Audiences <span class="pill">soon</span></a>
+          <a class="soon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h18M3 6h18M3 18h18"/></svg> Reporting <span class="pill">soon</span></a>
+          <a id="nav-billing"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19"/></svg> Billing</a>
+        </nav>
+        <div class="sb-foot">
+          <button class="iconbtn" id="theme" title="Toggle theme"></button>
+          <a href="/dashboard">Dashboard</a>
+          <a href="/">Home</a>
+          <button id="signout">Log out</button>
+        </div>
+      </aside>
+
+      <div class="content">
+        <div class="topbar">
+          <h1>Campaigns</h1>
+          <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Search campaigns" /></div>
+          <span class="chip">📅 Last 14 days</span>
+          <div class="spacer"></div>
           <button class="btn" id="btn-fund">Add funds</button>
-          <button class="btn accent" id="btn-new">New campaign</button>
+          <button class="btn primary" id="btn-create">+ Create</button>
+        </div>
+
+        <div class="body">
+          <div class="kpis">
+            <div class="kpi"><div class="k">Amount spent</div><div class="v tnum" id="k-spent">—</div></div>
+            <div class="kpi"><div class="k">Impressions</div><div class="v tnum" id="k-impr">—</div></div>
+            <div class="kpi"><div class="k">Clicks</div><div class="v tnum" id="k-clicks">—</div></div>
+            <div class="kpi"><div class="k">Conversions</div><div class="v tnum" id="k-conv">—</div></div>
+            <div class="kpi"><div class="k">Invalid traffic</div><div class="v tnum" id="k-itr">—</div></div>
+          </div>
+
+          <div class="tabs"><div class="t active">Campaigns</div></div>
+
+          <div class="bulkbar" id="bulkbar">
+            <span class="n" id="bulk-n">0 selected</span>
+            <button class="btn sm" id="bulk-edit">Edit</button>
+            <button class="btn sm" id="bulk-dup">Duplicate</button>
+            <button class="btn sm" id="bulk-pause">Turn off</button>
+            <button class="btn sm" id="bulk-resume">Turn on</button>
+            <button class="btn sm" id="bulk-del" style="color:var(--red)">Delete</button>
+          </div>
+
+          <div id="camp-area"></div>
         </div>
       </div>
-      <div class="strip reveal">
-        <div class="s"><div class="k">Balance</div><div class="v good tnum" id="s-balance">—</div></div>
-        <div class="s"><div class="k">Spent</div><div class="v tnum" id="s-spent">—</div></div>
-        <div class="s"><div class="k">Impr · Clicks · Conv</div><div class="v tnum" id="s-events">—</div></div>
-        <div class="s"><div class="k">Invalid traffic</div><div class="v tnum" id="s-itp">—</div></div>
-      </div>
-      <div id="camp-area" class="reveal"></div>
     </div>
 
-    <div class="scrim" id="scrim"></div>
-    <aside class="drawer" id="drawer" aria-hidden="true">
-      <div class="dh"><h2 id="drawer-title">New campaign</h2><button class="x" data-close>×</button></div>
-      <div class="db">
-        <div id="seg-wrap">
-          <label>What do you pay for?</label>
-          <div class="seg" id="seg">
-            <div class="o sel" data-obj="cpm"><b>CPM</b><span>per 1k views</span></div>
-            <div class="o" data-obj="cpc"><b>CPC</b><span>per click</span></div>
-            <div class="o" data-obj="cpa"><b>CPA</b><span>per action</span></div>
+    <!-- CREATE / EDIT modal -->
+    <div class="scrim" id="m-camp">
+      <div class="modal">
+        <div class="mh"><h2 id="m-title">Create campaign</h2><button class="x" data-close>×</button></div>
+        <div class="mb">
+          <!-- step 1: objective -->
+          <div id="step1">
+            <p class="muted" style="margin-top:0">Choose what you want this campaign to optimize and pay for.</p>
+            <div class="objs">
+              <div class="objcard" data-obj="cpm"><div class="oi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><b>Awareness</b><span class="meta">CPM</span><p>Maximize verified impressions. You pay per 1,000 views.</p></div></div>
+              <div class="objcard" data-obj="cpc"><div class="oi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3l14 9-6 1.5L11 20z"/></svg></div><div><b>Traffic</b><span class="meta">CPC</span><p>Drive clicks to your site. You pay per intentional click.</p></div></div>
+              <div class="objcard" data-obj="cpa"><div class="oi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7L9 18l-5-5"/></svg></div><div><b>Conversions</b><span class="meta">CPA</span><p>Pay only when a developer converts. Best for signups.</p></div></div>
+            </div>
+          </div>
+
+          <!-- step 2: settings -->
+          <div id="step2" style="display:none">
+            <div id="obj-readonly" style="margin-bottom:6px"></div>
+            <div class="grid2">
+              <div><label id="bid-label">Bid · per 1k views</label><div class="money"><span class="sym">$</span><input id="f-bid" type="number" min="0" step="0.01" value="10.00" /></div></div>
+              <div><label>Lifetime budget</label><div class="money"><span class="sym">$</span><input id="f-budget" type="number" min="0" step="1" value="25" /></div></div>
+            </div>
+            <div class="hint" id="hint"></div>
+            <label>Ad headline <span class="counter" id="f-count">0 / 120</span></label>
+            <textarea id="f-text" maxlength="120" placeholder="Acme: ship Rust faster → acme.example"></textarea>
+            <div class="grid2">
+              <div><label>Destination URL</label><input id="f-url" placeholder="https://acme.example" /></div>
+              <div><label>Targeting tags</label><input id="f-tags" placeholder="rust, go, docker" /></div>
+            </div>
+            <div class="term">
+              <div class="t1">~/api · agent thinking…</div>
+              <div class="t2"><span class="s">·</span> <span class="a">Sponsored by</span> <span id="pv-adv">your brand</span><span class="s">:</span> <span id="pv-text">your headline</span></div>
+            </div>
           </div>
         </div>
-        <div class="row">
-          <div><label id="bid-label">Bid · per 1k views</label><div class="money"><span class="sym">$</span><input id="f-bid" type="number" min="0" step="0.01" value="10.00" /></div></div>
-          <div><label>Total budget</label><div class="money"><span class="sym">$</span><input id="f-budget" type="number" min="0" step="1" value="25" /></div></div>
-        </div>
-        <div class="hint" id="hint"></div>
-        <label>Headline <span class="counter" id="f-count">0 / 120</span></label>
-        <textarea id="f-text" maxlength="120" placeholder="Acme: ship Rust faster → acme.example"></textarea>
-        <div class="row">
-          <div><label>Destination URL</label><input id="f-url" placeholder="https://acme.example" /></div>
-          <div><label>Tags</label><input id="f-tags" placeholder="rust, go, docker" /></div>
-        </div>
-        <div class="term">
-          <div class="t1">~/api · agent thinking…</div>
-          <div class="t2"><span class="s">·</span> <span class="a">Sponsored by</span> <span id="pv-adv">your brand</span><span class="s">:</span> <span id="pv-text">your headline</span></div>
+        <div class="mf">
+          <button class="btn" id="m-back" style="display:none">← Back</button>
+          <span class="spacer"></span>
+          <button class="btn" data-close>Cancel</button>
+          <button class="btn primary" id="m-submit" style="display:none">Publish</button>
         </div>
       </div>
-      <div class="df"><button class="btn" data-close>Cancel</button><button class="btn accent" id="f-create">Launch campaign</button></div>
-    </aside>
+    </div>
 
-    <div class="modal-scrim" id="m-fund">
-      <div class="modal">
-        <h2>Add funds</h2>
-        <p class="desc">Demo top-up. In production this is a Stripe charge.</p>
-        <label>Amount</label>
-        <div class="money"><span class="sym">$</span><input id="fund-amt" type="number" min="1" step="1" value="50" /></div>
-        <div class="mf"><button class="btn" data-close>Cancel</button><button class="btn accent" id="fund-go">Add funds</button></div>
+    <!-- FUND modal -->
+    <div class="scrim" id="m-fund">
+      <div class="modal sm">
+        <div class="mh"><h2>Add funds</h2><button class="x" data-close>×</button></div>
+        <div class="mb">
+          <p class="muted" style="margin-top:0">Demo top-up. In production this is a Stripe charge.</p>
+          <label>Amount</label><div class="money"><span class="sym">$</span><input id="fund-amt" type="number" min="1" step="1" value="50" /></div>
+        </div>
+        <div class="mf"><span class="spacer"></span><button class="btn" data-close>Cancel</button><button class="btn blue" id="fund-go">Add funds</button></div>
       </div>
     </div>
 
@@ -229,26 +309,34 @@
 
     <script type="module">
       const $ = (s) => document.querySelector(s);
+      const $$ = (s) => Array.from(document.querySelectorAll(s));
       const API = location.origin;
       const LS_KEY = 'cc_adv_key', LS_NAME = 'cc_adv_name';
       const usd = (m) => '$' + (Number(m || 0) / 1e6).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const toMicros = (d) => Math.round(Number(d) * 1e6);
-      const fmt = (n) => Number(n).toLocaleString();
+      const fmt = (n) => Number(n || 0).toLocaleString();
       const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
       let apiKey = localStorage.getItem(LS_KEY) || '';
       let advName = localStorage.getItem(LS_NAME) || '';
-      let objective = 'cpm';
-      let editingId = null;
+      let objective = 'cpm', editingId = null;
       const campById = {};
+      const selected = new Set();
+      let allCamps = [];
+
+      const OBJ_NAME = { cpm: 'Awareness', cpc: 'Traffic', cpa: 'Conversions' };
+      const OBJ_CODE = { cpm: 'CPM', cpc: 'CPC', cpa: 'CPA' };
+      const BID_LABELS = { cpm: 'Bid · per 1k views', cpc: 'Bid · per click', cpa: 'Bid · per conversion' };
+      const BID_DEFAULT = { cpm: '10.00', cpc: '0.30', cpa: '3.00' };
+      const RESULT_UNIT = { cpm: 'impressions', cpc: 'clicks', cpa: 'conversions' };
+      const resultCount = (c) => (c.objective === 'cpc' ? c.stats.engagements : c.objective === 'cpa' ? c.stats.conversions : c.stats.impressions);
 
       // theme
-      const SUN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>';
-      const MOON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>';
-      const tbtn = $('#theme');
-      const paintIcon = () => (tbtn.innerHTML = document.documentElement.getAttribute('data-theme') === 'dark' ? SUN : MOON);
-      paintIcon();
-      tbtn.onclick = () => { const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', n); try { localStorage.setItem('cc_theme', n); } catch (e) {} paintIcon(); };
+      const SUN = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>';
+      const MOON = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>';
+      const paintTheme = () => ($('#theme').innerHTML = document.documentElement.getAttribute('data-theme') === 'dark' ? SUN : MOON);
+      paintTheme();
+      $('#theme').onclick = () => { const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', n); try { localStorage.setItem('cc_theme', n); } catch (e) {} paintTheme(); };
 
       function toast(msg, kind) { const t = $('#toast'); t.textContent = msg; t.className = 'toast show ' + (kind || ''); clearTimeout(t._t); t._t = setTimeout(() => (t.className = 'toast'), 2600); }
       async function api(method, path, { body, key } = {}) {
@@ -258,14 +346,17 @@
         return json;
       }
       const show = (id, on) => ($(id).style.display = on ? '' : 'none');
+      const openM = (id) => $(id).classList.add('open');
+      const closeM = (id) => $(id).classList.remove('open');
 
+      // ---- onboarding ----
       $('#to-key').onclick = () => { show('#pane-create', false); show('#pane-key', true); };
       $('#to-create').onclick = () => { show('#pane-key', false); show('#pane-create', true); };
       $('#ob-create').onclick = async () => {
         const name = $('#ob-name').value.trim(), email = $('#ob-email').value.trim();
         if (!name || !email) return toast('Name and email required', 'err');
         $('#ob-create').disabled = true;
-        try { const r = await api('POST', '/v1/advertisers', { body: { name, email } }); apiKey = r.apiKey; advName = name; localStorage.setItem(LS_KEY, apiKey); localStorage.setItem(LS_NAME, advName); revealKey(apiKey); }
+        try { const r = await api('POST', '/v1/advertisers', { body: { name, email } }); apiKey = r.apiKey; advName = name; localStorage.setItem(LS_KEY, apiKey); localStorage.setItem(LS_NAME, advName); revealKey(r.apiKey); }
         catch (e) { toast(e.message, 'err'); $('#ob-create').disabled = false; }
       };
       $('#ob-signin').onclick = async () => {
@@ -274,154 +365,182 @@
         catch (e) { toast('Invalid key', 'err'); }
       };
       function revealKey(key) {
-        $('#ob-card').innerHTML = `<h1>You're in.</h1><p class="lead">Save your API key — it signs into the CLI and other devices. Shown once.</p><div class="keybox"><span class="w">⚠ Store this somewhere safe</span><code>${esc(key)}</code></div><button class="btn" id="copykey" style="width:100%;justify-content:center;margin-bottom:9px">Copy key</button><button class="btn accent" id="gomgr" style="width:100%;justify-content:center">Continue →</button>`;
+        $('#ob-card').innerHTML = `<div class="brand"><span class="mark"></span> CodeCash Ads</div><h1>Account created</h1><p class="lead">Save your API key — it logs you in on the CLI and other devices. Shown once.</p><div class="keybox"><span class="w">⚠ Store this somewhere safe</span><code>${esc(key)}</code></div><button class="btn" id="copykey" style="width:100%;justify-content:center;margin-bottom:9px">Copy key</button><button class="btn blue" id="gomgr" style="width:100%;justify-content:center">Go to Ads Manager →</button>`;
         $('#copykey').onclick = async () => { try { await navigator.clipboard.writeText(key); toast('Copied', 'ok'); } catch (e) {} };
         $('#gomgr').onclick = enterApp;
       }
-
-      $('#navr').insertAdjacentHTML('afterbegin', '<button id="signout" style="display:none">Sign out</button><span id="navbal"></span>');
       $('#signout').onclick = () => { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_NAME); location.reload(); };
 
+      // ---- app ----
       async function enterApp() {
-        show('#onboard', false); show('#app', true); $('#signout').style.display = '';
-        $('#who').textContent = advName;
-        $('#camp-area').innerHTML = '<div class="panel"><div class="empty"><div class="spin"></div><p style="margin-top:14px">Loading your campaigns…</p></div></div>';
+        show('#onboard', false); $('#app').style.display = 'grid';
+        $('#acct-name').textContent = advName; $('#av').textContent = (advName[0] || 'A').toUpperCase();
+        $('#camp-area').innerHTML = `<div class="tablewrap"><div class="empty"><div class="spin"></div><p style="margin-top:14px">Loading campaigns…</p></div></div>`;
         await refresh();
       }
       async function refresh() {
         try {
           const [stats, list] = await Promise.all([api('GET', '/v1/advertisers/stats', { key: apiKey }), api('GET', '/v1/advertisers/campaigns', { key: apiKey })]);
-          $('#s-balance').textContent = usd(stats.balanceMicros);
-          $('#s-spent').textContent = usd(stats.spentMicros);
-          $('#s-events').textContent = `${stats.impressions} · ${stats.engagements} · ${stats.conversions}`;
-          const itp = $('#s-itp'); itp.textContent = (stats.invalidTrafficRate * 100).toFixed(1) + '%'; itp.classList.toggle('bad', stats.invalidTrafficRate > 0.1);
-          $('#navbal').innerHTML = `<span class="bal">Balance <b>${usd(stats.balanceMicros)}</b></span>`;
-          renderCampaigns(list.campaigns || []);
+          $('#acct-bal').textContent = usd(stats.balanceMicros);
+          $('#k-spent').textContent = usd(stats.spentMicros); $('#k-impr').textContent = fmt(stats.impressions); $('#k-clicks').textContent = fmt(stats.engagements); $('#k-conv').textContent = fmt(stats.conversions);
+          const k = $('#k-itr'); k.textContent = (stats.invalidTrafficRate * 100).toFixed(1) + '%'; k.className = 'v tnum ' + (stats.invalidTrafficRate > 0.1 ? 'amber' : '');
+          allCamps = list.campaigns || []; allCamps.forEach((c) => (campById[c.id] = c));
+          selected.clear(); renderTable();
         } catch (e) { toast(e.message, 'err'); }
       }
-      function renderCampaigns(camps) {
-        const area = $('#camp-area');
-        if (!camps.length) {
-          area.innerHTML = `<div class="panel"><div class="empty"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg></div><h3>No campaigns yet</h3><p>Launch your first campaign to start reaching developers.</p><button class="btn accent" id="empty-new">New campaign</button></div></div>`;
-          $('#empty-new').onclick = () => openDrawer(); return;
+      function filteredCamps() {
+        const q = $('#search').value.trim().toLowerCase();
+        return !q ? allCamps : allCamps.filter((c) => (c.advertiser + ' ' + c.text).toLowerCase().includes(q));
+      }
+      function renderTable() {
+        const area = $('#camp-area'), camps = filteredCamps();
+        if (!allCamps.length) {
+          area.innerHTML = `<div class="tablewrap"><div class="empty"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg></div><h3>Create your first campaign</h3><p>Launch a campaign to start reaching developers in their flow.</p><button class="btn primary" id="empty-new">+ Create</button></div></div>`;
+          $('#empty-new').onclick = openCreate; return;
         }
-        camps.forEach((c) => (campById[c.id] = c));
+        const delivLabel = { active: 'Active', paused: 'Off', exhausted: 'Out of budget' };
+        let tImpr = 0, tSpent = 0, tRes = 0;
         const rows = camps.map((c) => {
-          const s = c.stats, obj = (c.objective || 'cpm').toUpperCase(), itr = (s.invalidTrafficRate * 100).toFixed(1);
-          const toggle = c.status === 'active' ? `<button class="rowbtn" data-act="status" data-id="${c.id}" data-to="paused">Pause</button>` : c.status !== 'exhausted' ? `<button class="rowbtn" data-act="status" data-id="${c.id}" data-to="active">Resume</button>` : '';
-          return `<tr>
-            <td><div class="cname">${esc(c.advertiser)}</div><div class="csub hide-sm">${esc(c.text)}</div></td>
-            <td><span class="obj">${obj}</span></td>
+          const s = c.stats, on = c.status !== 'paused', res = resultCount(c);
+          tImpr += s.impressions; tSpent += s.spentMicros; tRes += res;
+          const bid = c.bidMicros != null ? usd(c.bidMicros) : usd(c.cpmMicros || 0);
+          const cpr = res > 0 ? usd(Math.round(s.spentMicros / res)) : '—';
+          const itr = (s.invalidTrafficRate * 100).toFixed(1);
+          return `<tr data-id="${c.id}" class="${selected.has(c.id) ? 'sel' : ''}">
+            <td><input type="checkbox" class="cb" data-id="${c.id}" ${selected.has(c.id) ? 'checked' : ''}></td>
+            <td><button class="tg ${on ? 'on' : ''}" data-id="${c.id}" title="${on ? 'Turn off' : 'Turn on'}"></button></td>
+            <td><div class="cname">${esc(c.advertiser)}</div><div class="muted" style="font-size:12px">${esc(c.text)}</div><div class="crow-actions"><a data-edit="${c.id}">Edit</a><a data-dup="${c.id}">Duplicate</a><a data-del="${c.id}" style="color:var(--red)">Delete</a></div></td>
+            <td><span class="deliv ${c.status}"><span class="dot"></span>${delivLabel[c.status] || c.status}</span></td>
+            <td><span class="obj">${OBJ_CODE[c.objective] || 'CPM'}</span> ${bid}</td>
+            <td class="num">${usd(c.remainingBudgetMicros)} <span class="muted">left</span></td>
+            <td class="num">${fmt(res)}<div class="muted" style="font-size:11px">${RESULT_UNIT[c.objective] || 'impressions'}</div></td>
+            <td class="num">${cpr}</td>
+            <td class="num">${fmt(s.impressions)}</td>
             <td class="num">${usd(s.spentMicros)}</td>
-            <td class="num hide-sm">${usd(c.remainingBudgetMicros)}</td>
-            <td class="num">${s.impressions} · ${s.engagements} · ${s.conversions}</td>
-            <td class="num">${itr}%</td>
-            <td><span class="st ${c.status}"><span class="dot"></span>${c.status}</span></td>
-            <td class="num"><span class="rowacts"><button class="rowbtn" data-act="edit" data-id="${c.id}">Edit</button>${toggle}<button class="rowbtn danger" data-act="del" data-id="${c.id}">Delete</button></span></td>
+            <td class="num ${s.invalidTrafficRate > 0.1 ? 'itr-bad' : 'itr-ok'}">${itr}%</td>
           </tr>`;
         }).join('');
-        area.innerHTML = `<div class="panel"><table><thead><tr>
-          <th>Campaign</th><th>Type</th><th class="num">Spent</th><th class="num hide-sm">Budget left</th>
-          <th class="num">I · C · Cv</th><th class="num">Invalid</th><th>Status</th><th class="num">Actions</th>
-        </tr></thead><tbody>${rows}</tbody></table></div>`;
-        area.querySelectorAll('.rowbtn').forEach((b) => (b.onclick = () => rowAction(b)));
+        area.innerHTML = `<div class="tablewrap"><table>
+          <thead><tr>
+            <th><input type="checkbox" class="cb" id="cb-all"></th><th>Off/On</th><th>Campaign</th><th>Delivery</th>
+            <th>Bid strategy</th><th class="num">Budget</th><th class="num">Results</th><th class="num">Cost / result</th>
+            <th class="num">Impressions</th><th class="num">Spent</th><th class="num">Invalid</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr>
+            <td colspan="6">Results from ${camps.length} campaign${camps.length === 1 ? '' : 's'}</td>
+            <td class="num">${fmt(tRes)}</td><td></td><td class="num">${fmt(tImpr)}</td><td class="num">${usd(tSpent)}</td><td></td>
+          </tr></tfoot>
+        </table></div>`;
+        wireTable();
+        updateBulk();
       }
-      async function rowAction(b) {
-        const id = b.dataset.id, act = b.dataset.act;
-        if (act === 'edit') return openDrawer(campById[id]);
-        if (act === 'del') {
-          if (!confirm('Delete this campaign? This cannot be undone.')) return;
+      function wireTable() {
+        $$('.tg').forEach((b) => (b.onclick = async () => {
+          const id = b.dataset.id, c = campById[id], to = c.status === 'paused' ? 'active' : 'paused';
           b.disabled = true;
-          try { await api('POST', '/v1/advertisers/campaigns/delete', { key: apiKey, body: { id } }); toast('Campaign deleted', 'ok'); await refresh(); }
+          try { await api('POST', '/v1/advertisers/campaigns/status', { key: apiKey, body: { id, status: to } }); await refresh(); }
           catch (e) { toast(e.message, 'err'); b.disabled = false; }
-          return;
-        }
-        b.disabled = true;
-        try { await api('POST', '/v1/advertisers/campaigns/status', { key: apiKey, body: { id, status: b.dataset.to } }); toast(b.dataset.to === 'paused' ? 'Campaign paused' : 'Campaign resumed', 'ok'); await refresh(); }
-        catch (e) { toast(e.message, 'err'); b.disabled = false; }
+        }));
+        $$('.cb[data-id]').forEach((cb) => (cb.onchange = () => { cb.checked ? selected.add(cb.dataset.id) : selected.delete(cb.dataset.id); $(`tr[data-id="${cb.dataset.id}"]`)?.classList.toggle('sel', cb.checked); updateBulk(); }));
+        const all = $('#cb-all'); if (all) all.onchange = () => { filteredCamps().forEach((c) => (all.checked ? selected.add(c.id) : selected.delete(c.id))); renderTable(); };
+        $$('[data-edit]').forEach((a) => (a.onclick = () => openEdit(a.dataset.edit)));
+        $$('[data-dup]').forEach((a) => (a.onclick = () => duplicate(a.dataset.dup)));
+        $$('[data-del]').forEach((a) => (a.onclick = () => delCampaigns([a.dataset.del])));
+      }
+      function updateBulk() {
+        const n = selected.size, bar = $('#bulkbar');
+        bar.classList.toggle('show', n > 0);
+        $('#bulk-n').textContent = n + ' selected';
+        $('#bulk-edit').style.display = n === 1 ? '' : 'none';
+      }
+      $('#search').oninput = renderTable;
+
+      // bulk actions
+      $('#bulk-edit').onclick = () => openEdit([...selected][0]);
+      $('#bulk-dup').onclick = async () => { for (const id of [...selected]) await duplicate(id, true); await refresh(); toast('Duplicated', 'ok'); };
+      $('#bulk-pause').onclick = () => bulkStatus('paused');
+      $('#bulk-resume').onclick = () => bulkStatus('active');
+      $('#bulk-del').onclick = () => delCampaigns([...selected]);
+      async function bulkStatus(status) {
+        try { for (const id of [...selected]) await api('POST', '/v1/advertisers/campaigns/status', { key: apiKey, body: { id, status } }); toast(status === 'paused' ? 'Turned off' : 'Turned on', 'ok'); await refresh(); }
+        catch (e) { toast(e.message, 'err'); }
+      }
+      async function delCampaigns(ids) {
+        if (!ids.length) return;
+        if (!confirm(`Delete ${ids.length} campaign${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
+        try { for (const id of ids) await api('POST', '/v1/advertisers/campaigns/delete', { key: apiKey, body: { id } }); toast('Deleted', 'ok'); await refresh(); }
+        catch (e) { toast(e.message, 'err'); }
+      }
+      async function duplicate(id, silent) {
+        const c = campById[id]; if (!c) return;
+        try {
+          await api('POST', '/v1/advertisers/campaigns', { key: apiKey, body: { advertiser: c.advertiser, objective: c.objective, bidMicros: c.bidMicros || c.cpmMicros, budgetMicros: c.budgetMicros, text: (c.text + ' (copy)').slice(0, 120), url: c.url || undefined, tags: c.tags, model: c.objective === 'cpa' ? 'affiliate' : 'sponsor' } });
+          if (!silent) { toast('Campaign duplicated', 'ok'); await refresh(); }
+        } catch (e) { toast(e.message, 'err'); }
       }
 
-      const BID_LABELS = { cpm: 'Bid · per 1k views', cpc: 'Bid · per click', cpa: 'Bid · per action' };
-      const BID_DEFAULT = { cpm: '10.00', cpc: '0.30', cpa: '3.00' };
-      const UNIT = { cpm: 'impressions', cpc: 'clicks', cpa: 'conversions' };
-      function setObjective(obj) {
-        objective = obj;
-        document.querySelectorAll('#seg .o').forEach((x) => x.classList.toggle('sel', x.dataset.obj === obj));
-        $('#bid-label').textContent = BID_LABELS[obj];
+      // ---- create / edit modal ----
+      function setObjective(obj) { objective = obj; $('#bid-label').textContent = BID_LABELS[obj]; }
+      function openCreate() {
+        editingId = null; $('#m-title').textContent = 'Create campaign';
+        show('#step1', true); show('#step2', false); show('#m-back', false); show('#m-submit', false);
+        openM('#m-camp');
       }
-      function openDrawer(c) {
-        editingId = c && c.id ? c.id : null;
-        if (editingId) {
-          $('#drawer-title').textContent = 'Edit campaign';
-          $('#f-create').textContent = 'Save changes';
-          $('#seg-wrap').style.display = 'none'; // objective is fixed after launch
-          setObjective(c.objective || 'cpm');
-          $('#f-bid').value = ((c.bidMicros ?? c.cpmMicros ?? 0) / 1e6).toFixed(2);
-          $('#f-budget').value = (c.budgetMicros ?? 0) / 1e6;
-          $('#f-text').value = c.text || '';
-          $('#f-url').value = c.url || '';
-          $('#f-tags').value = (c.tags || []).join(', ');
-        } else {
-          $('#drawer-title').textContent = 'New campaign';
-          $('#f-create').textContent = 'Launch campaign';
-          $('#seg-wrap').style.display = '';
-          setObjective('cpm');
-          $('#f-bid').value = BID_DEFAULT.cpm; $('#f-budget').value = '25';
-          $('#f-text').value = ''; $('#f-url').value = ''; $('#f-tags').value = '';
-        }
-        syncPreview();
-        $('#scrim').classList.add('open'); $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false');
-        setTimeout(() => $('#f-text').focus(), 280);
+      $$('.objcard').forEach((card) => (card.onclick = () => {
+        setObjective(card.dataset.obj);
+        $('#f-bid').value = BID_DEFAULT[objective]; $('#f-budget').value = '25'; $('#f-text').value = ''; $('#f-url').value = ''; $('#f-tags').value = '';
+        $('#obj-readonly').innerHTML = `<span class="readobj"><b>${OBJ_NAME[objective]}</b> · <span class="obj">${OBJ_CODE[objective]}</span></span>`;
+        show('#step1', false); show('#step2', true); show('#m-back', true); show('#m-submit', true);
+        $('#m-submit').textContent = 'Publish'; syncPreview(); setTimeout(() => $('#f-text').focus(), 50);
+      }));
+      $('#m-back').onclick = () => { if (editingId) return closeM('#m-camp'); show('#step1', true); show('#step2', false); show('#m-back', false); show('#m-submit', false); };
+      function openEdit(id) {
+        const c = campById[id]; if (!c) return;
+        editingId = id; objective = c.objective || 'cpm';
+        $('#m-title').textContent = 'Edit campaign';
+        $('#obj-readonly').innerHTML = `<span class="readobj"><b>${OBJ_NAME[objective]}</b> · <span class="obj">${OBJ_CODE[objective]}</span> · objective can't change</span>`;
+        $('#bid-label').textContent = BID_LABELS[objective];
+        $('#f-bid').value = ((c.bidMicros ?? c.cpmMicros ?? 0) / 1e6).toFixed(2);
+        $('#f-budget').value = (c.budgetMicros ?? 0) / 1e6; $('#f-text').value = c.text || ''; $('#f-url').value = c.url || ''; $('#f-tags').value = (c.tags || []).join(', ');
+        show('#step1', false); show('#step2', true); show('#m-back', true); show('#m-submit', true); $('#m-submit').textContent = 'Save changes';
+        syncPreview(); openM('#m-camp'); setTimeout(() => $('#f-text').focus(), 50);
       }
-      function closeDrawer() { $('#scrim').classList.remove('open'); $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true'); }
-      $('#btn-new').onclick = () => openDrawer();
-      $('#scrim').onclick = closeDrawer;
-      $('#seg').addEventListener('click', (e) => {
-        const o = e.target.closest('.o'); if (!o) return;
-        objective = o.dataset.obj;
-        document.querySelectorAll('#seg .o').forEach((x) => x.classList.toggle('sel', x === o));
-        $('#bid-label').textContent = BID_LABELS[objective]; $('#f-bid').value = BID_DEFAULT[objective]; syncPreview();
-      });
       function syncPreview() {
-        $('#pv-adv').textContent = advName || 'your brand';
-        $('#pv-text').textContent = $('#f-text').value || 'your headline';
+        $('#pv-adv').textContent = advName || 'your brand'; $('#pv-text').textContent = $('#f-text').value || 'your headline';
         $('#f-count').textContent = $('#f-text').value.length + ' / 120';
         const bid = Number($('#f-bid').value), budget = Number($('#f-budget').value);
-        if (bid > 0 && budget > 0) { const vol = objective === 'cpm' ? (budget / bid) * 1000 : budget / bid; $('#hint').innerHTML = `≈ <b>${fmt(Math.floor(vol))}</b> ${UNIT[objective]} for ${usd(toMicros(budget))} — billed only on verified traffic.`; }
+        if (bid > 0 && budget > 0) { const vol = objective === 'cpm' ? (budget / bid) * 1000 : budget / bid; $('#hint').innerHTML = `Estimated ≈ <b>${fmt(Math.floor(vol))}</b> ${RESULT_UNIT[objective]} for ${usd(toMicros(budget))} — billed only on verified traffic.`; }
         else $('#hint').textContent = '';
       }
       ['#f-bid', '#f-budget', '#f-text'].forEach((id) => $(id).addEventListener('input', syncPreview));
-      $('#f-create').onclick = async () => {
+      $('#m-submit').onclick = async () => {
         const text = $('#f-text').value.trim(), bid = Number($('#f-bid').value), budget = Number($('#f-budget').value);
-        if (!text) return toast('Add a headline', 'err');
+        if (!text) return toast('Add an ad headline', 'err');
         if (!(bid > 0)) return toast('Bid must be greater than 0', 'err');
-        const tags = $('#f-tags').value.split(',').map((s) => s.trim()).filter(Boolean);
-        const url = $('#f-url').value.trim();
-        $('#f-create').disabled = true;
+        const tags = $('#f-tags').value.split(',').map((s) => s.trim()).filter(Boolean), url = $('#f-url').value.trim();
+        $('#m-submit').disabled = true;
         try {
-          if (editingId) {
-            await api('POST', '/v1/advertisers/campaigns/update', { key: apiKey, body: { id: editingId, bidMicros: toMicros(bid), budgetMicros: toMicros(budget), text, url: url || null, tags } });
-            toast('Campaign updated', 'ok');
-          } else {
-            await api('POST', '/v1/advertisers/campaigns', { key: apiKey, body: { advertiser: advName, objective, bidMicros: toMicros(bid), budgetMicros: toMicros(budget), text, url: url || undefined, tags: tags.length ? tags : undefined, model: objective === 'cpa' ? 'affiliate' : 'sponsor' } });
-            toast('Campaign launched', 'ok');
-          }
-          closeDrawer(); await refresh();
+          if (editingId) { await api('POST', '/v1/advertisers/campaigns/update', { key: apiKey, body: { id: editingId, bidMicros: toMicros(bid), budgetMicros: toMicros(budget), text, url: url || null, tags } }); toast('Campaign updated', 'ok'); }
+          else { await api('POST', '/v1/advertisers/campaigns', { key: apiKey, body: { advertiser: advName, objective, bidMicros: toMicros(bid), budgetMicros: toMicros(budget), text, url: url || undefined, tags: tags.length ? tags : undefined, model: objective === 'cpa' ? 'affiliate' : 'sponsor' } }); toast('Campaign published', 'ok'); }
+          closeM('#m-camp'); await refresh();
         } catch (e) { toast(e.message, 'err'); }
-        $('#f-create').disabled = false;
+        $('#m-submit').disabled = false;
       };
+      $('#btn-create').onclick = openCreate;
 
-      $('#btn-fund').onclick = () => { $('#m-fund').classList.add('open'); setTimeout(() => $('#fund-amt').focus(), 50); };
+      // funds
+      $('#btn-fund').onclick = $('#nav-billing').onclick = () => { openM('#m-fund'); setTimeout(() => $('#fund-amt').focus(), 50); };
       $('#fund-go').onclick = async () => {
         const amt = Number($('#fund-amt').value); if (!(amt > 0)) return toast('Enter an amount', 'err');
         $('#fund-go').disabled = true;
-        try { await api('POST', '/v1/advertisers/fund', { key: apiKey, body: { amountMicros: toMicros(amt) } }); $('#m-fund').classList.remove('open'); toast('Funds added', 'ok'); await refresh(); }
+        try { await api('POST', '/v1/advertisers/fund', { key: apiKey, body: { amountMicros: toMicros(amt) } }); closeM('#m-fund'); toast('Funds added', 'ok'); await refresh(); }
         catch (e) { toast(e.message, 'err'); }
         $('#fund-go').disabled = false;
       };
-      document.querySelectorAll('[data-close]').forEach((b) => (b.onclick = () => { closeDrawer(); $('#m-fund').classList.remove('open'); }));
-      $('#m-fund').addEventListener('click', (e) => { if (e.target === $('#m-fund')) $('#m-fund').classList.remove('open'); });
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDrawer(); $('#m-fund').classList.remove('open'); } });
+      $$('[data-close]').forEach((b) => (b.onclick = () => { closeM('#m-camp'); closeM('#m-fund'); }));
+      $$('.scrim').forEach((sc) => sc.addEventListener('click', (e) => { if (e.target === sc) sc.classList.remove('open'); }));
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.scrim').forEach((s) => s.classList.remove('open')); });
 
       (async function boot() {
         if (apiKey) { try { const s = await api('GET', '/v1/advertisers/stats', { key: apiKey }); advName = s.name || advName; return enterApp(); } catch (e) { localStorage.removeItem(LS_KEY); } }
