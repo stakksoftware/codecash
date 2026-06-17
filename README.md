@@ -12,6 +12,17 @@ transmits your prompts or code**.
 
 > Formerly codenamed *Slipstream*. Working name: **CodeCash**.
 
+## 🟢 Live
+
+Deployed on Vercel + Supabase Postgres ([deployment notes](docs/DEPLOY.md)):
+
+- **Transparency dashboard:** https://codecash-swart.vercel.app/
+- **Advertiser console:** https://codecash-swart.vercel.app/advertiser
+- **Published receipt key:** https://codecash-swart.vercel.app/.well-known/codecash-receipts.json
+- **Source:** https://github.com/stakksoftware/codecash
+
+Point the CLI/SDK at it: `export CODECASH_SERVER=https://codecash-swart.vercel.app`
+
 ```
 $ codecash ledger
 CodeCash local ledger

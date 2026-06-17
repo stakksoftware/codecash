@@ -2,15 +2,15 @@
 // up front — there is no balance-proximity throttling anywhere (FR8). Withdrawal
 // requires a verified payment identity (FR15, Sybil resistance at cash-out).
 
-import * as store from './store.js';
+import * as store from './db.js';
 import { createPayout, stripeConfigured } from './stripe.js';
 
 export const CASHOUT_THRESHOLD_MICROS = 5_000_000; // $5.00 — fixed, published
 export const PAYOUT_SCHEDULE = 'on-demand once balance ≥ $5.00; auto-sweep weekly (Mondays)';
 
-export function payoutStatus(accountId) {
-  const account = store.getAccount(accountId);
-  const balanceMicros = store.balanceMicros(accountId);
+export async function payoutStatus(accountId) {
+  const account = await store.getAccount(accountId);
+  const balanceMicros = await store.balanceMicros(accountId);
   return {
     balanceMicros,
     thresholdMicros: CASHOUT_THRESHOLD_MICROS,
@@ -22,10 +22,10 @@ export function payoutStatus(accountId) {
 }
 
 export async function withdraw(accountId) {
-  const account = store.getAccount(accountId);
+  const account = await store.getAccount(accountId);
   if (!account) return { ok: false, reason: 'no such account' };
 
-  const balanceMicros = store.balanceMicros(accountId);
+  const balanceMicros = await store.balanceMicros(accountId);
   if (balanceMicros < CASHOUT_THRESHOLD_MICROS) {
     return { ok: false, reason: `below threshold (have ${balanceMicros}, need ${CASHOUT_THRESHOLD_MICROS})` };
   }
@@ -38,7 +38,7 @@ export async function withdraw(accountId) {
   const transfer = await createPayout({ accountId, amountMicros: balanceMicros, email: account.email });
   if (!transfer.ok) return { ok: false, reason: transfer.error || 'payout rail error' };
 
-  store.recordTransfer({
+  await store.recordTransfer({
     accountId,
     amountMicros: transfer.amountMicros,
     transferId: transfer.transferId,

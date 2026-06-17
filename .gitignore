@@ -21,3 +21,5 @@ apps/server/keys/
 # Build output
 dist/
 coverage/
+.vercel
+.env*.local

@@ -7,31 +7,31 @@
 //   { merchant, headline, url, payoutMicros, model, tags }
 // where `model` is "cpa" (bounty per signup/sale), "cpc" (per click) or "cpm".
 
-import * as store from './store.js';
+import * as store from './db.js';
 import { validateCampaign } from '@codecash/core';
 
 const BROKER_ADVERTISER = { name: 'CodeCash Brokered', email: 'broker@codecash.example' };
 const BROKER_API_KEY = 'brk_internal_broker_key';
 
 /** Ensure the synthetic "brokered" advertiser exists and is funded. */
-export function ensureBrokerAdvertiser(fundMicros = 100_000_000) {
-  const existing = store.resolveApiKey(BROKER_API_KEY);
+export async function ensureBrokerAdvertiser(fundMicros = 100_000_000) {
+  const existing = await store.resolveApiKey(BROKER_API_KEY);
   if (existing) {
-    store.fundAdvertiser(existing, 0);
     return store.getAdvertiser(existing);
   }
-  const { advertiser } = store.createAdvertiser({ ...BROKER_ADVERTISER, apiKey: BROKER_API_KEY });
-  store.fundAdvertiser(advertiser.advertiserId, fundMicros);
-  return advertiser;
+  const { advertiser } = await store.createAdvertiser({ ...BROKER_ADVERTISER, apiKey: BROKER_API_KEY });
+  await store.fundAdvertiser(advertiser.advertiserId, fundMicros);
+  return store.getAdvertiser(advertiser.advertiserId);
 }
 
 /**
  * Import a feed of offers as active campaigns. Returns { imported, skipped }.
  * Each offer becomes one campaign on the brokered advertiser, with a per-offer
- * budget so a single brokered offer can't drain the whole pool.
+ * budget so a single brokered offer can't drain the whole pool. Idempotent on
+ * the campaign id (re-importing the same feed updates in place).
  */
-export function importFeed(offers, { perOfferBudgetMicros = 10_000_000 } = {}) {
-  const adv = ensureBrokerAdvertiser();
+export async function importFeed(offers, { perOfferBudgetMicros = 10_000_000 } = {}) {
+  const adv = await ensureBrokerAdvertiser();
   let imported = 0;
   const skipped = [];
 
@@ -55,7 +55,11 @@ export function importFeed(offers, { perOfferBudgetMicros = 10_000_000 } = {}) {
       skipped.push({ merchant: offer.merchant, errors: v.errors });
       continue;
     }
-    store.createCampaign(adv.advertiserId, campaign);
+    if (await store.getCampaign(campaign.id)) {
+      skipped.push({ merchant: offer.merchant, errors: ['already imported'] });
+      continue;
+    }
+    await store.createCampaign(adv.advertiserId, campaign);
     imported++;
   }
   return { imported, skipped, advertiserId: adv.advertiserId };

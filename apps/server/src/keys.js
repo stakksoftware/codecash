@@ -2,9 +2,14 @@
 //   - receipts (the published receipt key — users verify against its public half)
 //   - campaign bundles (so clients trust the inventory they target against)
 //
-// Keys are generated once and persisted under apps/server/keys/. The PUBLIC
-// halves are safe to publish and are also mirrored to docs/keys/ by
-// scripts/genkeys.mjs for independent verification.
+// Key source, in priority order:
+//   1. Environment variables (production / serverless — stable across cold
+//      starts, never written to disk):
+//        CODECASH_RECEIPT_PRIVATE_KEY / CODECASH_RECEIPT_PUBLIC_KEY
+//        CODECASH_BUNDLE_PRIVATE_KEY  / CODECASH_BUNDLE_PUBLIC_KEY
+//   2. A keyfile under apps/server/keys/ (local dev), generated on first run.
+// The PUBLIC halves are safe to publish; scripts/genkeys.mjs mirrors them to
+// docs/keys/ for independent verification.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,7 +22,15 @@ const KEYS_DIR = process.env.CODECASH_KEYS_DIR || path.join(here, '..', 'keys');
 export const RECEIPT_KEY_ID = 'codecash-receipts-v1';
 export const BUNDLE_KEY_ID = 'codecash-bundle-v1';
 
-function loadOrCreate(name) {
+function fromEnv(prefix) {
+  const priv = process.env[`CODECASH_${prefix}_PRIVATE_KEY`];
+  const pub = process.env[`CODECASH_${prefix}_PUBLIC_KEY`];
+  return priv && pub ? { privateKey: priv, publicKey: pub } : null;
+}
+
+function loadOrCreate(name, envPrefix) {
+  const env = fromEnv(envPrefix);
+  if (env) return env;
   fs.mkdirSync(KEYS_DIR, { recursive: true });
   const file = path.join(KEYS_DIR, `${name}.json`);
   try {
@@ -35,12 +48,12 @@ let _receipt;
 let _bundle;
 
 export function receiptKeys() {
-  if (!_receipt) _receipt = loadOrCreate('receipt-key');
+  if (!_receipt) _receipt = loadOrCreate('receipt-key', 'RECEIPT');
   return _receipt;
 }
 
 export function bundleKeys() {
-  if (!_bundle) _bundle = loadOrCreate('bundle-key');
+  if (!_bundle) _bundle = loadOrCreate('bundle-key', 'BUNDLE');
   return _bundle;
 }
 

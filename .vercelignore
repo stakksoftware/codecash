@@ -1,0 +1,12 @@
+# Local runtime state & secrets (never upload)
+apps/server/.data
+apps/server/keys
+.data
+.codecash
+
+# Tests & dev-only scripts aren't needed at runtime
+**/test
+scripts/demo*.mjs
+
+# Docs (keep the function bundle lean)
+docs
