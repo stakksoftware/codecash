@@ -1,0 +1,35 @@
+{
+  "name": "codecash",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CodeCash — turn AI/agent wait-states into value for the developer who is waiting. Trust-first, privacy-first, fraud-resistant wait-state monetization.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "bin": {
+    "codecash": "apps/cli/bin/codecash.js"
+  },
+  "scripts": {
+    "test": "node --test 'packages/core/test/*.test.js' 'apps/cli/test/*.test.js' 'apps/server/test/*.test.js'",
+    "keys": "node scripts/genkeys.mjs",
+    "server": "node apps/server/src/server.js",
+    "dev": "node apps/server/src/server.js",
+    "demo": "node scripts/demo.mjs",
+    "cli": "node apps/cli/bin/codecash.js"
+  },
+  "keywords": [
+    "ads",
+    "wait-state",
+    "developer-tools",
+    "privacy",
+    "transparency",
+    "monetization",
+    "cli"
+  ]
+}

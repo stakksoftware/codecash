@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CodeCash — Transparency Ledger</title>
+    <style>
+      :root {
+        --bg: #0b0e14;
+        --panel: #131823;
+        --line: #222a3a;
+        --text: #e6edf3;
+        --muted: #8b98ad;
+        --accent: #4ade80;
+        --accent-dim: #163a26;
+        --bad: #f87171;
+        --chip: #1c2433;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      header {
+        padding: 24px 28px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      h1 { margin: 0; font-size: 20px; letter-spacing: 0.5px; }
+      h1 .cash { color: var(--accent); }
+      .sub { color: var(--muted); margin-top: 4px; font-size: 12px; }
+      main { padding: 20px 28px 60px; max-width: 1100px; }
+      .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+      input {
+        background: var(--panel); border: 1px solid var(--line); color: var(--text);
+        padding: 8px 10px; border-radius: 8px; font: inherit; min-width: 220px;
+      }
+      button {
+        background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent);
+        padding: 8px 14px; border-radius: 8px; font: inherit; cursor: pointer;
+      }
+      button:hover { background: #1c4a31; }
+      .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 22px; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+      .card .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; }
+      .card .v { font-size: 22px; margin-top: 6px; }
+      .card .v.net { color: var(--accent); }
+      table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 12px; overflow: hidden; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+      th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.5px; }
+      td.num { text-align: right; font-variant-numeric: tabular-nums; }
+      .net { color: var(--accent); }
+      .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); font-size: 11px; }
+      .ok { color: var(--accent); }
+      .bad { color: var(--bad); }
+      .note { color: var(--muted); font-size: 12px; margin-top: 18px; }
+      a { color: var(--accent); }
+      .empty { color: var(--muted); padding: 30px 0; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Code<span class="cash">Cash</span> · Transparency Ledger</h1>
+      <div class="sub">
+        Every monetizable event, with the exact CPM, your gross, the platform cut, and your net —
+        plus a cryptographically signed receipt you can verify right here in your browser. No throttling, ever.
+      </div>
+    </header>
+    <main>
+      <div class="controls">
+        <input id="server" placeholder="server url" />
+        <input id="token" placeholder="access token (codecash doctor → or demo output)" />
+        <button id="load">Load my ledger</button>
+        <button id="verifyAll">Verify all receipts</button>
+      </div>
+
+      <div class="cards" id="cards"></div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Advertiser</th>
+            <th>Type</th>
+            <th class="num">CPM</th>
+            <th class="num">Units</th>
+            <th class="num">Gross</th>
+            <th class="num">Platform</th>
+            <th class="num">You (net)</th>
+            <th>Receipt</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td colspan="9" class="empty">Enter your server + token and click “Load my ledger”.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="note">
+        Published payout formula: <strong>net = gross × userShare</strong>, gross = CPM/1000 × event-weight × quality,
+        with engagement and conversion weighted above impressions. Current split is published in
+        <a href="https://github.com/codecash/codecash/blob/main/docs/PAYOUT_FORMULA.md">PAYOUT_FORMULA.md</a>.
+        Receipts are verified below against the published key at
+        <code>/.well-known/codecash-receipts.json</code> — independently, with no trust in this page.
+      </div>
+    </main>
+
+    <script type="module">
+      const $ = (id) => document.getElementById(id);
+      $('server').value = location.origin;
+      // allow ?token=... or #token in the URL for the demo
+      const url = new URL(location.href);
+      $('token').value = url.searchParams.get('token') || location.hash.replace('#', '') || '';
+
+      const usd = (micros) => '$' + (micros / 1e6).toFixed(4);
+      let receiptKey = null;
+
+      async function fetchReceiptKey(server) {
+        const r = await fetch(server + '/.well-known/codecash-receipts.json');
+        const j = await r.json();
+        return j.publicKey;
+      }
+
+      // --- canonical JSON + Ed25519 verify, mirrored from @codecash/core ---
+      function canonicalize(value) {
+        return JSON.stringify(sortDeep(value));
+      }
+      function sortDeep(v) {
+        if (Array.isArray(v)) return v.map(sortDeep);
+        if (v && typeof v === 'object') {
+          const o = {};
+          for (const k of Object.keys(v).sort()) if (v[k] !== undefined) o[k] = sortDeep(v[k]);
+          return o;
+        }
+        return v;
+      }
+      function b64uToBytes(s) {
+        s = s.replace(/-/g, '+').replace(/_/g, '/');
+        const bin = atob(s + '==='.slice((s.length + 3) % 4));
+        return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+      }
+      async function verifyReceipt(receipt, pubB64u) {
+        try {
+          const key = await crypto.subtle.importKey('raw', b64uToBytes(pubB64u), { name: 'Ed25519' }, false, ['verify']);
+          const data = new TextEncoder().encode(canonicalize(receipt.body));
+          const sigOk = await crypto.subtle.verify('Ed25519', key, b64uToBytes(receipt.signature), data);
+          return sigOk;
+        } catch (e) {
+          return null; // WebCrypto Ed25519 unavailable — fall back to CLI verify
+        }
+      }
+
+      async function load() {
+        const server = $('server').value.replace(/\/$/, '');
+        const token = $('token').value.trim();
+        receiptKey = await fetchReceiptKey(server).catch(() => null);
+        const res = await fetch(server + '/v1/ledger', { headers: { authorization: 'Bearer ' + token } });
+        if (!res.ok) {
+          $('rows').innerHTML = `<tr><td colspan="9" class="bad">Could not load ledger (${res.status}). Check your token.</td></tr>`;
+          return;
+        }
+        const data = await res.json();
+        renderCards(data);
+        renderRows(data.entries || []);
+      }
+
+      function renderCards(d) {
+        $('cards').innerHTML = `
+          <div class="card"><div class="k">Events</div><div class="v">${d.count}</div></div>
+          <div class="card"><div class="k">Gross</div><div class="v">${usd(d.grossMicros)}</div></div>
+          <div class="card"><div class="k">Platform cut</div><div class="v">${usd(d.platformMicros)}</div></div>
+          <div class="card"><div class="k">You (net balance)</div><div class="v net">${usd(d.balanceMicros)}</div></div>`;
+      }
+
+      function renderRows(entries) {
+        if (!entries.length) {
+          $('rows').innerHTML = `<tr><td colspan="9" class="empty">No events yet — earn some by waiting on an agent.</td></tr>`;
+          return;
+        }
+        $('rows').innerHTML = entries
+          .slice()
+          .reverse()
+          .map((e, i) => {
+            const b = e.receipt?.body || {};
+            const a = e.amounts || {};
+            const cpm = b.cpmMicros ? usd(b.cpmMicros) : '—';
+            return `<tr data-i="${i}">
+              <td>${e.issuedAt || ''}</td>
+              <td>${e.advertiser || ''}</td>
+              <td><span class="chip">${e.type || ''}</span></td>
+              <td class="num">${cpm}</td>
+              <td class="num">${b.units ?? 1}</td>
+              <td class="num">${usd(a.grossMicros || 0)}</td>
+              <td class="num">${usd(a.platformCutMicros || 0)}</td>
+              <td class="num net">${usd(a.netMicros || 0)}</td>
+              <td><button class="verify" data-id="${b.receiptId || ''}">verify</button> <span class="vr"></span></td>
+            </tr>`;
+          })
+          .join('');
+        // wire verify buttons
+        const reversed = entries.slice().reverse();
+        document.querySelectorAll('button.verify').forEach((btn, idx) => {
+          btn.addEventListener('click', async () => {
+            const receipt = reversed[idx].receipt;
+            const span = btn.parentElement.querySelector('.vr');
+            const ok = await verifyReceipt(receipt, receiptKey);
+            span.textContent = ok === null ? 'verify in CLI' : ok ? '✓ valid' : '✗ INVALID';
+            span.className = 'vr ' + (ok ? 'ok' : ok === null ? '' : 'bad');
+          });
+        });
+      }
+
+      async function verifyAll() {
+        const btns = document.querySelectorAll('button.verify');
+        for (const b of btns) b.click();
+      }
+
+      $('load').addEventListener('click', load);
+      $('verifyAll').addEventListener('click', verifyAll);
+      if ($('token').value) load();
+    </script>
+  </body>
+</html>

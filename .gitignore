@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# CodeCash local state (never commit user ledgers or secrets)
+.codecash/
+*.secret
+*.key
+secrets/
+
+# Server runtime state & generated private keys.
+# The entire keystore holds private key material — NEVER commit it. The
+# publishable PUBLIC halves are written to docs/keys/ by scripts/genkeys.mjs.
+apps/server/.data/
+apps/server/keys/
+.data/
+
+# Logs / OS
+*.log
+.DS_Store
+
+# Build output
+dist/
+coverage/

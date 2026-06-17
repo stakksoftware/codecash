@@ -1,0 +1,12 @@
+{
+  "receipt": {
+    "keyId": "codecash-receipts-v1",
+    "publicKey": "G43eToOFD4fr0SDiW8PVlCsFl8oleknZsfiHq2HWkss",
+    "alg": "ed25519"
+  },
+  "bundle": {
+    "keyId": "codecash-bundle-v1",
+    "publicKey": "-mFXx6p2vZwunuHkyBBnHvy97p8VA4K1VRcmDIHtXdU",
+    "alg": "ed25519"
+  }
+}

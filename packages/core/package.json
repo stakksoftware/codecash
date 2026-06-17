@@ -1,0 +1,22 @@
+{
+  "name": "@codecash/core",
+  "version": "0.1.0",
+  "description": "CodeCash trust core: canonical signing, signed receipts, the published payout formula, privacy-safe counters, and on-device targeting. Zero runtime dependencies.",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.js",
+  "types": "types.d.ts",
+  "exports": {
+    ".": "./index.js",
+    "./crypto": "./crypto.js",
+    "./payout": "./payout.js",
+    "./receipt": "./receipt.js",
+    "./counter": "./counter.js",
+    "./bundle": "./bundle.js",
+    "./targeting": "./targeting.js",
+    "./session": "./session.js"
+  },
+  "scripts": {
+    "test": "node --test test"
+  }
+}
