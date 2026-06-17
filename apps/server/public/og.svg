@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="-apple-system, 'SF Pro Text', 'Segoe UI', Inter, system-ui, sans-serif">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="0%" r="90%">
+      <stop offset="0%" stop-color="#11261d" />
+      <stop offset="55%" stop-color="#0b0c0e" />
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#g)" />
+  <!-- brand -->
+  <g transform="translate(72 64)">
+    <rect width="44" height="44" rx="13" fill="#34d399" />
+    <rect x="11" y="11" width="22" height="22" rx="7" fill="none" stroke="#0b0c0e" stroke-opacity=".55" stroke-width="5" />
+    <text x="62" y="31" fill="#e9edf3" font-size="27" font-weight="600" letter-spacing="-.5">codecash</text>
+  </g>
+  <!-- headline -->
+  <text x="72" y="300" fill="#ffffff" font-size="104" font-weight="650" letter-spacing="-4">Get paid to wait.</text>
+  <text x="74" y="372" fill="#aab2bf" font-size="33" font-weight="400" letter-spacing="-.5">Turn AI/agent wait-states into money — paid in signed receipts.</text>
+  <!-- terminal chip -->
+  <g transform="translate(72 432)">
+    <rect width="660" height="120" rx="16" fill="#15181e" stroke="#262a33" />
+    <circle cx="28" cy="30" r="6" fill="#2c2f37" /><circle cx="48" cy="30" r="6" fill="#2c2f37" /><circle cx="68" cy="30" r="6" fill="#2c2f37" />
+    <text x="28" y="78" fill="#cbd5e1" font-size="20" font-family="ui-monospace, 'SF Mono', Menlo, monospace">· <tspan fill="#34d399">Sponsored by</tspan> Vercel — ship frontends faster</text>
+    <text x="28" y="104" fill="#6ee7b7" font-size="17" font-family="ui-monospace, 'SF Mono', Menlo, monospace">✓ +$0.0084 earned · signed receipt</text>
+  </g>
+  <!-- right meta -->
+  <text x="1128" y="560" text-anchor="end" fill="#79828f" font-size="22" letter-spacing="-.3">open source · on-device · no throttling · codecash.sh</text>
+</svg>

@@ -253,6 +253,25 @@ export async function setCampaignStatus(id, status) {
   return rows && rows[0] ? camp(rows[0]) : null;
 }
 
+export async function updateCampaign(id, fields) {
+  const row = {};
+  if (fields.bidMicros != null) row.bid_micros = fields.bidMicros;
+  if (fields.budgetMicros != null) row.budget_micros = fields.budgetMicros;
+  if (fields.text != null) row.text = fields.text;
+  if ('url' in fields) row.url = fields.url ?? null;
+  if ('tags' in fields) row.tags = fields.tags ?? null;
+  if (fields.status) row.status = fields.status;
+  if (Object.keys(row).length === 0) return getCampaign(id);
+  const rows = await patch('campaigns', `id=eq.${enc(id)}`, row);
+  return rows && rows[0] ? camp(rows[0]) : null;
+}
+
+export async function deleteCampaign(id) {
+  await rq('DELETE', `/campaign_stats?campaign_id=eq.${enc(id)}`);
+  await rq('DELETE', `/campaigns?id=eq.${enc(id)}`);
+  return true;
+}
+
 export async function campaignsForAdvertiser(advertiserId) {
   const rows = await sel('campaigns', `advertiser_id=eq.${enc(advertiserId)}&order=created_at.asc`);
   return (rows || []).map(camp);

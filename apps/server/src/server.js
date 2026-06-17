@@ -376,6 +376,48 @@ export const handlers = {
     send(res, 200, { ok: true, id, status: updated?.status ?? status });
   },
 
+  async advertiserUpdateCampaign(req, res) {
+    const advertiserId = await authAdvertiser(req);
+    if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
+    const input = await readJson(req);
+    const c = await store.getCampaign(input.id);
+    if (!c || c.advertiserId !== advertiserId) return send(res, 404, { error: 'no such campaign' });
+
+    const fields = {};
+    if (input.bidMicros != null) {
+      if (!(input.bidMicros > 0)) return send(res, 400, { error: 'bidMicros must be > 0' });
+      fields.bidMicros = Math.floor(input.bidMicros);
+    }
+    if (input.budgetMicros != null) {
+      if (!(input.budgetMicros >= 0)) return send(res, 400, { error: 'budgetMicros must be >= 0' });
+      fields.budgetMicros = Math.floor(input.budgetMicros);
+    }
+    if (input.text != null) {
+      if (!input.text || input.text.length > 120) return send(res, 400, { error: 'text required, <=120 chars' });
+      fields.text = input.text;
+    }
+    if ('url' in input) fields.url = input.url || null;
+    if ('tags' in input) fields.tags = Array.isArray(input.tags) ? input.tags : null;
+
+    // Raising budget above spend un-exhausts a campaign (unless the advertiser
+    // paused it); dropping below spend exhausts it.
+    const newBudget = fields.budgetMicros ?? c.budgetMicros;
+    if (c.status !== 'paused') fields.status = newBudget - c.spentMicros > 0 ? 'active' : 'exhausted';
+
+    const updated = await store.updateCampaign(input.id, fields);
+    send(res, 200, { ok: true, campaign: updated, pricing: describePricing(updated) });
+  },
+
+  async advertiserDeleteCampaign(req, res) {
+    const advertiserId = await authAdvertiser(req);
+    if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
+    const { id } = await readJson(req);
+    const c = await store.getCampaign(id);
+    if (!c || c.advertiserId !== advertiserId) return send(res, 404, { error: 'no such campaign' });
+    await store.deleteCampaign(id);
+    send(res, 200, { ok: true, id });
+  },
+
   async advertiserStats(req, res) {
     const advertiserId = await authAdvertiser(req);
     if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
@@ -430,6 +472,10 @@ export const handlers = {
   installScript(req, res) {
     serveStatic(res, 'install.sh', 'text/plain; charset=utf-8');
   },
+
+  ogImage(req, res) {
+    serveStatic(res, 'og.svg', 'image/svg+xml; charset=utf-8');
+  },
 };
 
 function serveStatic(res, name, contentType) {
@@ -466,6 +512,7 @@ export async function handle(req, res) {
     if (p === '/dashboard') return handlers.dashboard(req, res);
     if (p === '/advertiser' || p === '/ads') return handlers.advertiserDashboard(req, res);
     if (p === '/install.sh') return handlers.installScript(req, res);
+    if (p === '/og.svg') return handlers.ogImage(req, res);
     if (p === '/.well-known/codecash-receipts.json') return handlers.wellKnownKeys(req, res);
 
     if (p === '/v1/auth/login' && m === 'POST') return handlers.login(req, res);
@@ -482,6 +529,8 @@ export async function handle(req, res) {
     if (p === '/v1/advertisers/campaigns' && m === 'POST') return handlers.advertiserCreateCampaign(req, res);
     if (p === '/v1/advertisers/campaigns' && m === 'GET') return handlers.advertiserListCampaigns(req, res);
     if (p === '/v1/advertisers/campaigns/status' && m === 'POST') return handlers.advertiserSetCampaignStatus(req, res);
+    if (p === '/v1/advertisers/campaigns/update' && m === 'POST') return handlers.advertiserUpdateCampaign(req, res);
+    if (p === '/v1/advertisers/campaigns/delete' && m === 'POST') return handlers.advertiserDeleteCampaign(req, res);
     if (p === '/v1/advertisers/stats' && m === 'GET') return handlers.advertiserStats(req, res);
     if (p === '/v1/admin/import-feed' && m === 'POST') return handlers.adminImportFeed(req, res);
 

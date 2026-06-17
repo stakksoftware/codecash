@@ -140,6 +140,39 @@ test('a quality-gated billable click IS counted as invalid traffic', async () =>
   assert.ok(stats.invalidTrafficRate > 0, 'quality-gated conversion flagged as invalid');
 });
 
+test('pause/resume, edit, and delete a campaign (ownership-checked)', async () => {
+  await api('POST', '/v1/advertisers/fund', { apiKey, body: { amountMicros: 5_000_000 } });
+  const made = await api('POST', '/v1/advertisers/campaigns', {
+    apiKey,
+    body: { advertiser: 'Acme Dev', objective: 'cpm', bidMicros: 8_000_000, text: 'Acme → acme.example', budgetMicros: 3_000_000, tags: ['go'] },
+  });
+  const id = made.json.campaign.id;
+
+  // pause -> drops from served bundle; resume -> returns
+  await api('POST', '/v1/advertisers/campaigns/status', { apiKey, body: { id, status: 'paused' } });
+  let bundle = await api('GET', '/v1/bundle');
+  assert.equal(bundle.json.body.campaigns.find((c) => c.id === id), undefined);
+  await api('POST', '/v1/advertisers/campaigns/status', { apiKey, body: { id, status: 'active' } });
+  bundle = await api('GET', '/v1/bundle');
+  assert.ok(bundle.json.body.campaigns.find((c) => c.id === id));
+
+  // edit bid/budget/headline
+  const upd = await api('POST', '/v1/advertisers/campaigns/update', { apiKey, body: { id, bidMicros: 12_000_000, budgetMicros: 6_000_000, text: 'Acme v2 → acme.example' } });
+  assert.equal(upd.json.campaign.bidMicros, 12_000_000);
+  assert.equal(upd.json.campaign.text, 'Acme v2 → acme.example');
+
+  // a different advertiser cannot touch it
+  const other = await api('POST', '/v1/advertisers', { body: { name: 'Other Co', email: 'other@x.com' } });
+  const denied = await api('POST', '/v1/advertisers/campaigns/delete', { apiKey: other.json.apiKey, body: { id } });
+  assert.equal(denied.status, 404);
+
+  // owner deletes it
+  const del = await api('POST', '/v1/advertisers/campaigns/delete', { apiKey, body: { id } });
+  assert.equal(del.json.ok, true);
+  const list = await api('GET', '/v1/advertisers/campaigns', { apiKey });
+  assert.equal(list.json.campaigns.find((c) => c.id === id), undefined);
+});
+
 test('admin can broker-import an affiliate feed into live campaigns', async () => {
   const offers = [
     { merchant: 'FeedCo', headline: 'FeedCo: try free → feedco.example', url: 'https://feedco.example', model: 'cpa', payoutMicros: 1_500_000, tags: ['python'] },

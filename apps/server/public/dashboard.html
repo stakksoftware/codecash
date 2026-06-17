@@ -93,6 +93,7 @@
       <div class="controls reveal">
         <input id="token" placeholder="Paste your access token (run: codecash doctor)" />
         <button class="btn ink" id="load">Load ledger</button>
+        <button class="btn" id="export" style="display:none">Export CSV</button>
       </div>
 
       <div class="strip reveal" id="strip" style="display:none">
@@ -100,6 +101,14 @@
         <div class="s"><div class="k">Gross</div><div class="v tnum" id="c-gross">—</div></div>
         <div class="s"><div class="k">Platform cut</div><div class="v tnum" id="c-plat">—</div></div>
         <div class="s"><div class="k">You (net balance)</div><div class="v good tnum" id="c-net">—</div></div>
+      </div>
+
+      <div class="panel reveal" id="sparkpanel" style="display:none; padding:18px 20px; margin-bottom:22px">
+        <div style="display:flex; justify-content:space-between; align-items:baseline">
+          <span style="font-size:11.5px; color:var(--muted); letter-spacing:.04em; text-transform:uppercase">Cumulative net earnings</span>
+          <span id="spark-total" class="net tnum" style="font-size:15px"></span>
+        </div>
+        <svg id="spark" width="100%" height="60" viewBox="0 0 600 60" preserveAspectRatio="none" style="margin-top:10px; display:block"></svg>
       </div>
 
       <div class="panel reveal">
@@ -146,7 +155,33 @@
         lastEntries = (d.entries || []).slice().reverse();
         rows();
         autoVerify();
+        drawSpark(d.entries || []);
+        $('export').style.display = (d.entries || []).length ? '' : 'none';
       }
+      function drawSpark(chrono) {
+        const el = $('spark'), panel = $('sparkpanel');
+        if (chrono.length < 2) { panel.style.display = 'none'; return; }
+        panel.style.display = '';
+        let cum = 0; const pts = chrono.map((e) => (cum += e.amounts?.netMicros || 0));
+        $('spark-total').textContent = usd(cum);
+        const max = Math.max(...pts, 1), W = 600, H = 60, pad = 4;
+        const x = (i) => (pts.length === 1 ? 0 : (i / (pts.length - 1)) * W);
+        const y = (v) => H - pad - (v / max) * (H - pad * 2);
+        const line = pts.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+        const area = `0,${H} ${line} ${W},${H}`;
+        const acc = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#0e9f6e';
+        el.innerHTML = `<polygon points="${area}" fill="${acc}" fill-opacity="0.10"/><polyline points="${line}" fill="none" stroke="${acc}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+      }
+      $('export').onclick = () => {
+        const head = ['issuedAt', 'advertiser', 'type', 'cpmMicros', 'grossMicros', 'netMicros', 'platformCutMicros', 'receiptId'];
+        const rows = lastEntries.slice().reverse().map((e) => {
+          const b = e.receipt?.body || {}, a = e.amounts || {};
+          return [e.issuedAt || '', e.advertiser || '', e.type || '', b.cpmMicros ?? '', a.grossMicros ?? '', a.netMicros ?? '', a.platformCutMicros ?? '', b.receiptId || ''].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',');
+        });
+        const csv = [head.join(','), ...rows].join('\n');
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        const a = document.createElement('a'); a.href = url; a.download = 'codecash-ledger.csv'; a.click(); URL.revokeObjectURL(url);
+      };
       function rows() {
         if (!lastEntries.length) { $('rows').innerHTML = `<tr><td colspan="6" class="empty">No events yet — earn some by waiting on an agent.</td></tr>`; return; }
         $('rows').innerHTML = lastEntries.map((e, i) => {

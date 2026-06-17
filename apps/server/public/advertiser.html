@@ -90,8 +90,11 @@
       .st { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; } .st .dot { width: 7px; height: 7px; border-radius: 50%; }
       .st.active .dot { background: var(--accent); } .st.exhausted .dot, .st.paused .dot { background: var(--muted); }
       .st.active { color: var(--ink); } .st.exhausted, .st.paused { color: var(--muted); }
+      .rowacts { display: inline-flex; gap: 6px; justify-content: flex-end; }
       .rowbtn { border: 1px solid var(--line); background: var(--paper); color: var(--ink2); border-radius: 8px; padding: 5px 11px; font: inherit; font-size: 12px; cursor: pointer; transition: .12s; }
       .rowbtn:hover { color: var(--ink); border-color: color-mix(in srgb, var(--ink) 25%, transparent); }
+      .rowbtn:disabled { opacity: .45; cursor: not-allowed; }
+      .rowbtn.danger:hover { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
 
       .empty { text-align: center; padding: 64px 20px; }
       .empty .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; margin: 0 auto 14px; }
@@ -183,13 +186,15 @@
 
     <div class="scrim" id="scrim"></div>
     <aside class="drawer" id="drawer" aria-hidden="true">
-      <div class="dh"><h2>New campaign</h2><button class="x" data-close>×</button></div>
+      <div class="dh"><h2 id="drawer-title">New campaign</h2><button class="x" data-close>×</button></div>
       <div class="db">
-        <label>What do you pay for?</label>
-        <div class="seg" id="seg">
-          <div class="o sel" data-obj="cpm"><b>CPM</b><span>per 1k views</span></div>
-          <div class="o" data-obj="cpc"><b>CPC</b><span>per click</span></div>
-          <div class="o" data-obj="cpa"><b>CPA</b><span>per action</span></div>
+        <div id="seg-wrap">
+          <label>What do you pay for?</label>
+          <div class="seg" id="seg">
+            <div class="o sel" data-obj="cpm"><b>CPM</b><span>per 1k views</span></div>
+            <div class="o" data-obj="cpc"><b>CPC</b><span>per click</span></div>
+            <div class="o" data-obj="cpa"><b>CPA</b><span>per action</span></div>
+          </div>
         </div>
         <div class="row">
           <div><label id="bid-label">Bid · per 1k views</label><div class="money"><span class="sym">$</span><input id="f-bid" type="number" min="0" step="0.01" value="10.00" /></div></div>
@@ -234,6 +239,8 @@
       let apiKey = localStorage.getItem(LS_KEY) || '';
       let advName = localStorage.getItem(LS_NAME) || '';
       let objective = 'cpm';
+      let editingId = null;
+      const campById = {};
 
       // theme
       const SUN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>';
@@ -296,11 +303,12 @@
         const area = $('#camp-area');
         if (!camps.length) {
           area.innerHTML = `<div class="panel"><div class="empty"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg></div><h3>No campaigns yet</h3><p>Launch your first campaign to start reaching developers.</p><button class="btn accent" id="empty-new">New campaign</button></div></div>`;
-          $('#empty-new').onclick = openDrawer; return;
+          $('#empty-new').onclick = () => openDrawer(); return;
         }
+        camps.forEach((c) => (campById[c.id] = c));
         const rows = camps.map((c) => {
           const s = c.stats, obj = (c.objective || 'cpm').toUpperCase(), itr = (s.invalidTrafficRate * 100).toFixed(1);
-          const act = c.status === 'active' ? `<button class="rowbtn" data-id="${c.id}" data-to="paused">Pause</button>` : c.status === 'paused' ? `<button class="rowbtn" data-id="${c.id}" data-to="active">Resume</button>` : '';
+          const toggle = c.status === 'active' ? `<button class="rowbtn" data-act="status" data-id="${c.id}" data-to="paused">Pause</button>` : c.status !== 'exhausted' ? `<button class="rowbtn" data-act="status" data-id="${c.id}" data-to="active">Resume</button>` : '';
           return `<tr>
             <td><div class="cname">${esc(c.advertiser)}</div><div class="csub hide-sm">${esc(c.text)}</div></td>
             <td><span class="obj">${obj}</span></td>
@@ -309,26 +317,64 @@
             <td class="num">${s.impressions} · ${s.engagements} · ${s.conversions}</td>
             <td class="num">${itr}%</td>
             <td><span class="st ${c.status}"><span class="dot"></span>${c.status}</span></td>
-            <td class="num">${act}</td>
+            <td class="num"><span class="rowacts"><button class="rowbtn" data-act="edit" data-id="${c.id}">Edit</button>${toggle}<button class="rowbtn danger" data-act="del" data-id="${c.id}">Delete</button></span></td>
           </tr>`;
         }).join('');
         area.innerHTML = `<div class="panel"><table><thead><tr>
           <th>Campaign</th><th>Type</th><th class="num">Spent</th><th class="num hide-sm">Budget left</th>
-          <th class="num">I · C · Cv</th><th class="num">Invalid</th><th>Status</th><th></th>
+          <th class="num">I · C · Cv</th><th class="num">Invalid</th><th>Status</th><th class="num">Actions</th>
         </tr></thead><tbody>${rows}</tbody></table></div>`;
-        area.querySelectorAll('.rowbtn').forEach((b) => (b.onclick = async () => {
+        area.querySelectorAll('.rowbtn').forEach((b) => (b.onclick = () => rowAction(b)));
+      }
+      async function rowAction(b) {
+        const id = b.dataset.id, act = b.dataset.act;
+        if (act === 'edit') return openDrawer(campById[id]);
+        if (act === 'del') {
+          if (!confirm('Delete this campaign? This cannot be undone.')) return;
           b.disabled = true;
-          try { await api('POST', '/v1/advertisers/campaigns/status', { key: apiKey, body: { id: b.dataset.id, status: b.dataset.to } }); toast(b.dataset.to === 'paused' ? 'Campaign paused' : 'Campaign resumed', 'ok'); await refresh(); }
+          try { await api('POST', '/v1/advertisers/campaigns/delete', { key: apiKey, body: { id } }); toast('Campaign deleted', 'ok'); await refresh(); }
           catch (e) { toast(e.message, 'err'); b.disabled = false; }
-        }));
+          return;
+        }
+        b.disabled = true;
+        try { await api('POST', '/v1/advertisers/campaigns/status', { key: apiKey, body: { id, status: b.dataset.to } }); toast(b.dataset.to === 'paused' ? 'Campaign paused' : 'Campaign resumed', 'ok'); await refresh(); }
+        catch (e) { toast(e.message, 'err'); b.disabled = false; }
       }
 
       const BID_LABELS = { cpm: 'Bid · per 1k views', cpc: 'Bid · per click', cpa: 'Bid · per action' };
       const BID_DEFAULT = { cpm: '10.00', cpc: '0.30', cpa: '3.00' };
       const UNIT = { cpm: 'impressions', cpc: 'clicks', cpa: 'conversions' };
-      function openDrawer() { syncPreview(); $('#scrim').classList.add('open'); $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false'); setTimeout(() => $('#f-text').focus(), 280); }
+      function setObjective(obj) {
+        objective = obj;
+        document.querySelectorAll('#seg .o').forEach((x) => x.classList.toggle('sel', x.dataset.obj === obj));
+        $('#bid-label').textContent = BID_LABELS[obj];
+      }
+      function openDrawer(c) {
+        editingId = c && c.id ? c.id : null;
+        if (editingId) {
+          $('#drawer-title').textContent = 'Edit campaign';
+          $('#f-create').textContent = 'Save changes';
+          $('#seg-wrap').style.display = 'none'; // objective is fixed after launch
+          setObjective(c.objective || 'cpm');
+          $('#f-bid').value = ((c.bidMicros ?? c.cpmMicros ?? 0) / 1e6).toFixed(2);
+          $('#f-budget').value = (c.budgetMicros ?? 0) / 1e6;
+          $('#f-text').value = c.text || '';
+          $('#f-url').value = c.url || '';
+          $('#f-tags').value = (c.tags || []).join(', ');
+        } else {
+          $('#drawer-title').textContent = 'New campaign';
+          $('#f-create').textContent = 'Launch campaign';
+          $('#seg-wrap').style.display = '';
+          setObjective('cpm');
+          $('#f-bid').value = BID_DEFAULT.cpm; $('#f-budget').value = '25';
+          $('#f-text').value = ''; $('#f-url').value = ''; $('#f-tags').value = '';
+        }
+        syncPreview();
+        $('#scrim').classList.add('open'); $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false');
+        setTimeout(() => $('#f-text').focus(), 280);
+      }
       function closeDrawer() { $('#scrim').classList.remove('open'); $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true'); }
-      $('#btn-new').onclick = openDrawer;
+      $('#btn-new').onclick = () => openDrawer();
       $('#scrim').onclick = closeDrawer;
       $('#seg').addEventListener('click', (e) => {
         const o = e.target.closest('.o'); if (!o) return;
@@ -350,9 +396,18 @@
         if (!text) return toast('Add a headline', 'err');
         if (!(bid > 0)) return toast('Bid must be greater than 0', 'err');
         const tags = $('#f-tags').value.split(',').map((s) => s.trim()).filter(Boolean);
+        const url = $('#f-url').value.trim();
         $('#f-create').disabled = true;
-        try { await api('POST', '/v1/advertisers/campaigns', { key: apiKey, body: { advertiser: advName, objective, bidMicros: toMicros(bid), budgetMicros: toMicros(budget), text, url: $('#f-url').value.trim() || undefined, tags: tags.length ? tags : undefined, model: objective === 'cpa' ? 'affiliate' : 'sponsor' } }); closeDrawer(); $('#f-text').value = ''; toast('Campaign launched', 'ok'); await refresh(); }
-        catch (e) { toast(e.message, 'err'); }
+        try {
+          if (editingId) {
+            await api('POST', '/v1/advertisers/campaigns/update', { key: apiKey, body: { id: editingId, bidMicros: toMicros(bid), budgetMicros: toMicros(budget), text, url: url || null, tags } });
+            toast('Campaign updated', 'ok');
+          } else {
+            await api('POST', '/v1/advertisers/campaigns', { key: apiKey, body: { advertiser: advName, objective, bidMicros: toMicros(bid), budgetMicros: toMicros(budget), text, url: url || undefined, tags: tags.length ? tags : undefined, model: objective === 'cpa' ? 'affiliate' : 'sponsor' } });
+            toast('Campaign launched', 'ok');
+          }
+          closeDrawer(); await refresh();
+        } catch (e) { toast(e.message, 'err'); }
         $('#f-create').disabled = false;
       };
 

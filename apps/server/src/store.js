@@ -244,6 +244,26 @@ export function setCampaignStatus(campaignId, status) {
   return d.campaigns[campaignId] || null;
 }
 
+/** Patch allowed editable fields of a campaign. */
+export function updateCampaign(campaignId, fields) {
+  const d = ensure();
+  const c = d.campaigns[campaignId];
+  if (!c) return null;
+  for (const k of ['bidMicros', 'budgetMicros', 'text', 'url', 'tags', 'status']) {
+    if (k in fields && fields[k] !== undefined) c[k] = fields[k];
+  }
+  flush();
+  return c;
+}
+
+export function deleteCampaign(campaignId) {
+  const d = ensure();
+  delete d.campaigns[campaignId];
+  delete d.campaignStats[campaignId];
+  flush();
+  return true;
+}
+
 export function campaignsForAdvertiser(advertiserId) {
   return Object.values(ensure().campaigns).filter((c) => c.advertiserId === advertiserId);
 }
