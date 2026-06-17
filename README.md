@@ -16,12 +16,12 @@ transmits your prompts or code**.
 
 Deployed on Vercel + Supabase Postgres ([deployment notes](docs/DEPLOY.md)):
 
-- **Transparency dashboard:** https://codecash-swart.vercel.app/
-- **Advertiser console:** https://codecash-swart.vercel.app/advertiser
-- **Published receipt key:** https://codecash-swart.vercel.app/.well-known/codecash-receipts.json
+- **Transparency dashboard:** https://codecash.sh/
+- **Advertiser console:** https://codecash.sh/advertiser
+- **Published receipt key:** https://codecash.sh/.well-known/codecash-receipts.json
 - **Source:** https://github.com/stakksoftware/codecash
 
-Point the CLI/SDK at it: `export CODECASH_SERVER=https://codecash-swart.vercel.app`
+Point the CLI/SDK at it: `export CODECASH_SERVER=https://codecash.sh`
 
 ```
 $ codecash ledger

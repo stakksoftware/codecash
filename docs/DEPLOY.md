@@ -8,14 +8,14 @@ runs locally as a Node http server and on Vercel as a serverless function.
 
 | What | URL |
 |------|-----|
-| Earner transparency dashboard | https://codecash-swart.vercel.app/ |
-| Advertiser console | https://codecash-swart.vercel.app/advertiser |
-| Health | https://codecash-swart.vercel.app/healthz |
-| Published receipt key | https://codecash-swart.vercel.app/.well-known/codecash-receipts.json |
-| Signed campaign bundle | https://codecash-swart.vercel.app/v1/bundle |
+| Earner transparency dashboard | https://codecash.sh/ |
+| Advertiser console | https://codecash.sh/advertiser |
+| Health | https://codecash.sh/healthz |
+| Published receipt key | https://codecash.sh/.well-known/codecash-receipts.json |
+| Signed campaign bundle | https://codecash.sh/v1/bundle |
 | Source | https://github.com/stakksoftware/codecash |
 
-The CLI / SDK point at it with `CODECASH_SERVER=https://codecash-swart.vercel.app`.
+The CLI / SDK point at it with `CODECASH_SERVER=https://codecash.sh`.
 
 ## Architecture
 
@@ -68,7 +68,7 @@ push`); they don't require a redeploy unless the store code changes.
 ## Seeding live inventory
 
 ```bash
-CODECASH_SERVER=https://codecash-swart.vercel.app \
+CODECASH_SERVER=https://codecash.sh \
 CODECASH_ADMIN_TOKEN=... \
 node scripts/import-feed.mjs
 ```

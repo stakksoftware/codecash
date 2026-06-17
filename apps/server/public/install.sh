@@ -1,6 +1,6 @@
 #!/bin/sh
 # CodeCash CLI installer.  Usage:
-#   curl -fsSL https://codecash-swart.vercel.app/install.sh | sh
+#   curl -fsSL https://codecash.sh/install.sh | sh
 #
 # Installs the open-source CodeCash client into ~/.codecash-cli and puts
 # `codecash` + `codecash-advertiser` on your PATH (~/.local/bin). No sudo.
@@ -8,7 +8,7 @@ set -e
 
 REPO="https://github.com/stakksoftware/codecash"
 DIR="${CODECASH_DIR:-$HOME/.codecash-cli}"
-SERVER="${CODECASH_SERVER:-https://codecash-swart.vercel.app}"
+SERVER="${CODECASH_SERVER:-https://codecash.sh}"
 BIN="$HOME/.local/bin"
 
 printf '\n  \033[1;32mCodeCash\033[0m — get paid for the time you wait.\n\n'
