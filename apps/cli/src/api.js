@@ -5,7 +5,10 @@
 import { getValidAccessToken } from './keychain.js';
 import * as telemetry from './telemetry.js';
 
-async function http(method, url, { body, token, timeoutMs = 4000 } = {}) {
+// Default generously: a hosted server can have a serverless cold start plus a
+// few DB round-trips. The status-line path stays snappy by passing a small
+// timeout where latency matters; everything else tolerates a cold start.
+async function http(method, url, { body, token, timeoutMs = 15000 } = {}) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), timeoutMs);
   try {
