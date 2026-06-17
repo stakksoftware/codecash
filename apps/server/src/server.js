@@ -21,10 +21,14 @@ import {
   verifyCounter,
   issueReceipt,
   computePayout,
+  billingInputs,
+  validateCampaign,
+  describePricing,
 } from '@codecash/core';
 import * as store from './store.js';
 import * as keysMod from './keys.js';
 import * as payouts from './payouts.js';
+import * as broker from './broker.js';
 import { SEED_CAMPAIGNS, SEED_CONVERSION_VALUE_MICROS } from './seed.js';
 import { screenCounter, applyDailyVelocityCap } from './fraud.js';
 
@@ -32,22 +36,53 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const ACCESS_TTL_MS = 15 * 60 * 1000; // short access token => exercises refresh
 const BUNDLE_VERSION = '2026.06.17';
 
-// ---- bundle (built + signed once per process, refreshed by version) --------
+// ---- bundle (built + signed fresh; inventory = seeded floor + live demand) --
 
-let _bundleCache;
-export function currentBundle() {
-  if (_bundleCache) return _bundleCache;
-  const body = buildBundle({
-    version: BUNDLE_VERSION,
-    generatedAt: new Date().toISOString(),
-    ttlSeconds: 3600,
-    campaigns: SEED_CAMPAIGNS,
-  });
-  _bundleCache = signBundle(body, keysMod.bundleKeys().privateKey, keysMod.BUNDLE_KEY_ID);
-  return _bundleCache;
+// Only ad-serving fields go into the PUBLIC bundle. Advertiser budgets, spend,
+// bids, and objectives stay server-side (objective is harmless, included for the
+// dashboard but pricing values are not).
+function publicCampaign(c) {
+  const pub = {
+    id: c.id,
+    advertiser: c.advertiser,
+    model: c.model,
+    text: c.text,
+  };
+  if (c.url) pub.url = c.url;
+  if (c.tags) pub.tags = c.tags;
+  if (c.requireTags) pub.requireTags = c.requireTags;
+  if (c.weight != null) pub.weight = c.weight;
+  if (c.dailyCapImpressions != null) pub.dailyCapImpressions = c.dailyCapImpressions;
+  if (c.objective) pub.objective = c.objective;
+  // Legacy seed campaigns publish their CPM floor (not sensitive); objective
+  // campaigns never publish their bid.
+  if (!c.objective && c.cpmMicros != null) pub.cpmMicros = c.cpmMicros;
+  return pub;
 }
 
-const campaignsById = () => Object.fromEntries(SEED_CAMPAIGNS.map((c) => [c.id, c]));
+export function inventory() {
+  // Seeded floor (FR9) UNION live, funded advertiser campaigns (Phase 2).
+  return [...SEED_CAMPAIGNS, ...store.activeCampaigns()];
+}
+
+export function currentBundle() {
+  const live = store.activeCampaigns();
+  const body = buildBundle({
+    version: `${BUNDLE_VERSION}+${live.length}`,
+    generatedAt: new Date().toISOString(),
+    ttlSeconds: 3600,
+    campaigns: [...SEED_CAMPAIGNS, ...live].map(publicCampaign),
+  });
+  return signBundle(body, keysMod.bundleKeys().privateKey, keysMod.BUNDLE_KEY_ID);
+}
+
+// Full (server-side) campaign record by id — seeded floor first, else a store
+// (advertiser) campaign. Returns even exhausted/paused store campaigns so an
+// in-flight counter can still settle against remaining budget.
+const SEED_BY_ID = Object.fromEntries(SEED_CAMPAIGNS.map((c) => [c.id, c]));
+function lookupCampaign(id) {
+  return SEED_BY_ID[id] || store.getCampaign(id) || null;
+}
 
 // ---- helpers ---------------------------------------------------------------
 
@@ -79,6 +114,13 @@ function authAccount(req) {
   const h = req.headers['authorization'] || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : null;
   return token ? store.resolveAccessToken(token) : null;
+}
+
+// Advertisers authenticate with an API key (x-api-key) — separate identity space
+// from earner accounts.
+function authAdvertiser(req) {
+  const key = req.headers['x-api-key'];
+  return key ? store.resolveApiKey(key) : null;
 }
 
 function newAuthBundle(accountId) {
@@ -142,46 +184,55 @@ export const handlers = {
     store.rememberNonce(body.deviceId, body.nonce);
     store.recordCounterSubmission(body.deviceId);
 
-    // 3) Credit each event via the PUBLISHED formula, with a daily velocity cap.
-    const byId = campaignsById();
+    // 3) Credit each event via the PUBLISHED formula, with a daily velocity cap
+    //    and (for advertiser campaigns) per-campaign budget pacing.
     let creditedToday = store.creditedTodayMicros(accountId);
     const receipts = [];
     const credited = [];
     const issuedAt = new Date().toISOString();
 
     for (const ev of body.events || []) {
-      const campaign = byId[ev.campaignId];
+      const campaign = lookupCampaign(ev.campaignId);
       if (!campaign) continue; // ignore unknown campaigns
 
-      // Server uses ITS OWN cpm / conversion value, never the client's, so a
-      // client cannot inflate its own payout (fraud control).
-      const cpmMicros = campaign.cpmMicros;
-      const conversionValueMicros =
-        ev.type === 'conversion' ? SEED_CONVERSION_VALUE_MICROS[ev.campaignId] ?? campaign.cpmMicros : undefined;
+      // Server-authoritative pricing: derive billing inputs from the campaign's
+      // objective/bid (Phase 2) — never trust client-supplied cpm. Legacy seed
+      // campaigns fall back to their published CPM / conversion value.
+      const inputs = billingInputs(
+        campaign.objective
+          ? campaign
+          : { ...campaign, conversionValueMicros: SEED_CONVERSION_VALUE_MICROS[ev.campaignId] ?? campaign.cpmMicros },
+        ev.type,
+      );
 
       const units = Math.max(1, Math.floor(ev.count || 1));
       const single = computePayout({
-        type: ev.type,
-        cpmMicros,
-        conversionValueMicros,
+        type: inputs.type,
+        cpmMicros: inputs.cpmMicros,
+        conversionValueMicros: inputs.conversionValueMicros,
         quality: ev.quality ?? 1,
         units,
       });
 
+      // "Invalid traffic" = a billable event that was quality-gated to $0 (fraud
+      // signal). A non-billable event type for this objective is not invalid.
+      store.recordCampaignEvent(ev.campaignId, ev.type, { flagged: inputs.billable && single.grossMicros <= 0 });
+
       if (single.grossMicros <= 0) {
-        credited.push({ campaignId: ev.campaignId, type: ev.type, grossMicros: 0, note: 'quality-gated to $0' });
+        credited.push({ campaignId: ev.campaignId, type: ev.type, grossMicros: 0, note: inputs.billable ? 'quality-gated to $0' : 'not the billable event for this objective' });
         continue;
       }
 
-      // Daily velocity cap (FR13) — reduce units to fit remaining headroom.
+      // Caps: daily earnings velocity (FR13) AND advertiser budget pacing.
       const perUnitGross = single.grossMicros / units;
-      const cap = applyDailyVelocityCap(creditedToday, single.grossMicros);
-      let payableUnits = units;
-      if (cap.capped) {
-        payableUnits = Math.floor(cap.allowedGross / perUnitGross);
-      }
+      const velocity = applyDailyVelocityCap(creditedToday, single.grossMicros);
+      const budgetRemaining = store.campaignRemainingBudget(ev.campaignId); // Infinity for seed
+      const allowedGross = Math.min(velocity.allowedGross, budgetRemaining);
+      let payableUnits = allowedGross >= single.grossMicros ? units : Math.floor(allowedGross / perUnitGross);
       if (payableUnits <= 0) {
-        credited.push({ campaignId: ev.campaignId, type: ev.type, grossMicros: 0, note: 'daily earnings cap reached' });
+        // Already counted above; a cap is not invalid traffic, just throttling.
+        const note = budgetRemaining <= 0 ? 'advertiser budget exhausted' : 'daily earnings cap reached';
+        credited.push({ campaignId: ev.campaignId, type: ev.type, grossMicros: 0, note });
         continue;
       }
 
@@ -193,9 +244,9 @@ export const handlers = {
           deviceId: body.deviceId,
           advertiser: campaign.advertiser,
           campaignId: ev.campaignId,
-          type: ev.type,
-          cpmMicros: ev.type === 'conversion' ? null : cpmMicros,
-          conversionValueMicros: conversionValueMicros ?? null,
+          type: inputs.type,
+          cpmMicros: inputs.type === 'conversion' ? null : inputs.cpmMicros,
+          conversionValueMicros: inputs.conversionValueMicros ?? null,
           quality: ev.quality ?? 1,
           units: payableUnits,
         },
@@ -210,13 +261,15 @@ export const handlers = {
         issuedAt,
         advertiser: campaign.advertiser,
         campaignId: ev.campaignId,
-        type: ev.type,
+        type: inputs.type,
         amounts: receipt.body.amounts,
         receipt,
       });
+      // Bill the advertiser for the gross (no-op for seed/legacy campaigns).
+      store.recordSpend(ev.campaignId, receipt.body.amounts.grossMicros);
       creditedToday += receipt.body.amounts.grossMicros;
       receipts.push(receipt);
-      credited.push({ campaignId: ev.campaignId, type: ev.type, units: payableUnits, grossMicros: receipt.body.amounts.grossMicros });
+      credited.push({ campaignId: ev.campaignId, type: inputs.type, units: payableUnits, grossMicros: receipt.body.amounts.grossMicros });
     }
 
     send(res, 200, { ok: true, receipts, credited, flags: screen.flags });
@@ -263,6 +316,96 @@ export const handlers = {
     send(res, 200, { ok: true, accountId, identityVerified: true });
   },
 
+  // ---- Phase 2: advertiser (demand) API ------------------------------------
+
+  async advertiserRegister(req, res) {
+    const { name, email } = await readJson(req);
+    if (!name || !email) return send(res, 400, { error: 'name and email required' });
+    const apiKey = 'adk_' + randomId(20);
+    const { advertiser } = store.createAdvertiser({ name, email, apiKey });
+    send(res, 200, {
+      advertiserId: advertiser.advertiserId,
+      apiKey, // shown ONCE; the advertiser stores it
+      balanceMicros: advertiser.balanceMicros,
+      dashboard: '/advertiser',
+    });
+  },
+
+  async advertiserFund(req, res) {
+    const advertiserId = authAdvertiser(req);
+    if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
+    const { amountMicros } = await readJson(req);
+    if (!(amountMicros > 0)) return send(res, 400, { error: 'amountMicros > 0 required' });
+    // In production this is a Stripe charge; here we credit the budget directly.
+    const adv = store.fundAdvertiser(advertiserId, Math.floor(amountMicros));
+    send(res, 200, { advertiserId, balanceMicros: adv.balanceMicros });
+  },
+
+  async advertiserCreateCampaign(req, res) {
+    const advertiserId = authAdvertiser(req);
+    if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
+    const input = await readJson(req);
+    const v = validateCampaign(input);
+    if (!v.ok) return send(res, 400, { error: 'invalid campaign', details: v.errors });
+    const campaign = store.createCampaign(advertiserId, {
+      advertiser: input.advertiser,
+      model: input.model || 'sponsor',
+      objective: input.objective,
+      bidMicros: input.bidMicros,
+      text: input.text,
+      url: input.url,
+      tags: input.tags,
+      requireTags: input.requireTags,
+      weight: input.weight,
+      dailyCapImpressions: input.dailyCapImpressions,
+      budgetMicros: input.budgetMicros ?? 0,
+    });
+    send(res, 200, { campaign, pricing: describePricing(campaign) });
+  },
+
+  async advertiserListCampaigns(req, res) {
+    const advertiserId = authAdvertiser(req);
+    if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
+    const campaigns = store.campaignsForAdvertiser(advertiserId).map((c) => ({
+      ...c,
+      pricing: describePricing(c),
+      stats: store.campaignStats(c.id),
+      remainingBudgetMicros: store.campaignRemainingBudget(c.id),
+    }));
+    send(res, 200, { campaigns });
+  },
+
+  async advertiserStats(req, res) {
+    const advertiserId = authAdvertiser(req);
+    if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
+    const adv = store.getAdvertiser(advertiserId);
+    const campaigns = store.campaignsForAdvertiser(advertiserId);
+    let impressions = 0, engagements = 0, conversions = 0, flagged = 0, spentMicros = 0;
+    for (const c of campaigns) {
+      const s = store.campaignStats(c.id);
+      impressions += s.impressions; engagements += s.engagements;
+      conversions += s.conversions; flagged += s.flagged; spentMicros += s.spentMicros;
+    }
+    const total = impressions + engagements + conversions + flagged;
+    send(res, 200, {
+      advertiserId,
+      name: adv?.name,
+      balanceMicros: adv?.balanceMicros ?? 0,
+      campaigns: campaigns.length,
+      impressions, engagements, conversions, flagged, spentMicros,
+      invalidTrafficRate: total ? +(flagged / total).toFixed(4) : 0,
+    });
+  },
+
+  async adminImportFeed(req, res) {
+    const { offers, adminToken } = await readJson(req);
+    if (process.env.CODECASH_ADMIN_TOKEN && adminToken !== process.env.CODECASH_ADMIN_TOKEN) {
+      return send(res, 403, { error: 'forbidden' });
+    }
+    const result = broker.importFeed(offers || []);
+    send(res, 200, { ok: true, ...result });
+  },
+
   wellKnownKeys(req, res) {
     const doc = keysMod.publicKeyDoc();
     // The verify command reads `.publicKey` at the top level for the receipt key.
@@ -274,16 +417,23 @@ export const handlers = {
   },
 
   dashboard(req, res) {
-    const file = path.join(here, '..', 'public', 'dashboard.html');
-    try {
-      const html = fs.readFileSync(file);
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(html);
-    } catch {
-      send(res, 404, { error: 'dashboard not found' });
-    }
+    serveHtml(res, 'dashboard.html');
+  },
+
+  advertiserDashboard(req, res) {
+    serveHtml(res, 'advertiser.html');
   },
 };
+
+function serveHtml(res, name) {
+  try {
+    const html = fs.readFileSync(path.join(here, '..', 'public', name));
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    res.end(html);
+  } catch {
+    send(res, 404, { error: `${name} not found` });
+  }
+}
 
 // ---- router ----------------------------------------------------------------
 
@@ -297,6 +447,7 @@ export function createServer() {
 
       if (p === '/healthz') return handlers.health(req, res);
       if (p === '/' || p === '/dashboard') return handlers.dashboard(req, res);
+      if (p === '/advertiser') return handlers.advertiserDashboard(req, res);
       if (p === '/.well-known/codecash-receipts.json') return handlers.wellKnownKeys(req, res);
 
       if (p === '/v1/auth/login' && m === 'POST') return handlers.login(req, res);
@@ -307,6 +458,14 @@ export function createServer() {
       if (p === '/v1/payouts' && m === 'GET') return handlers.payouts(req, res);
       if (p === '/v1/payouts/withdraw' && m === 'POST') return handlers.withdraw(req, res);
       if (p === '/v1/admin/verify-identity' && m === 'POST') return handlers.verifyIdentity(req, res);
+
+      // ---- Phase 2: advertiser (demand) API ----
+      if (p === '/v1/advertisers' && m === 'POST') return handlers.advertiserRegister(req, res);
+      if (p === '/v1/advertisers/fund' && m === 'POST') return handlers.advertiserFund(req, res);
+      if (p === '/v1/advertisers/campaigns' && m === 'POST') return handlers.advertiserCreateCampaign(req, res);
+      if (p === '/v1/advertisers/campaigns' && m === 'GET') return handlers.advertiserListCampaigns(req, res);
+      if (p === '/v1/advertisers/stats' && m === 'GET') return handlers.advertiserStats(req, res);
+      if (p === '/v1/admin/import-feed' && m === 'POST') return handlers.adminImportFeed(req, res);
 
       send(res, 404, { error: 'not found' });
     } catch (e) {
@@ -324,9 +483,10 @@ if (isMain) {
   server.listen(port, () => {
     const doc = keysMod.publicKeyDoc();
     console.log(`CodeCash server listening on http://127.0.0.1:${port}`);
-    console.log(`  dashboard:    http://127.0.0.1:${port}/`);
-    console.log(`  receipt key:  ${doc.receipt.publicKey}`);
-    console.log(`  bundle:       v${BUNDLE_VERSION} (${SEED_CAMPAIGNS.length} seeded campaigns)`);
-    console.log(`  payout rails: ${payouts.payoutStatus('').rails}`);
+    console.log(`  earner dashboard:     http://127.0.0.1:${port}/`);
+    console.log(`  advertiser dashboard: http://127.0.0.1:${port}/advertiser`);
+    console.log(`  receipt key:          ${doc.receipt.publicKey}`);
+    console.log(`  inventory:            ${SEED_CAMPAIGNS.length} seeded + ${store.activeCampaigns().length} live campaigns`);
+    console.log(`  payout rails:         ${payouts.payoutStatus('').rails}`);
   });
 }

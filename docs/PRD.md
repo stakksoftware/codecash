@@ -202,11 +202,16 @@ the only durable moat in an attention market.
   on-device targeting. *Ship before scaling ads.* ✅ implemented.
 - **Phase 1 — Launch surface:** one agent CLI, affiliate floor, Stripe payouts,
   zero-maintenance auth. ✅ implemented.
-- **Phase 2 — Demand:** onboard 5–10 dev-relevant advertisers; engagement/
-  conversion payout tiers. (Tiers implemented; advertiser onboarding is a
-  business step.)
-- **Phase 3 — Surface expansion:** build/CI + long-job waits; "powered by" and
-  pay-to-remove modes.
-- **Phase 4 — SDK:** opt-in latency-monetization SDK for third-party apps.
+- **Phase 2 — Demand:** ✅ implemented — advertiser console + API (register, fund,
+  campaigns, stats), CPM/CPC/CPA payout tiers, per-campaign budget pacing,
+  brokered affiliate-feed import, and an honestly-reported invalid-traffic rate.
+  Onboarding specific real advertisers is the remaining business step. See
+  [DEMAND.md](./DEMAND.md).
+- **Phase 3 — Surface expansion:** ✅ implemented — `codecash wrap` monetizes
+  build/CI + long-job waits with on-device surface detection; "powered by"
+  single-sponsor mode and pay-to-remove mode. See [SURFACES.md](./SURFACES.md).
+- **Phase 4 — SDK:** ✅ implemented — `@codecash/sdk` monetizes third-party app
+  latency / time-to-first-token via `duringWait()` and `wrapStream()`. See
+  [SDK.md](./SDK.md).
 
 See [README.md](../README.md) for the FR-to-implementation traceability table.

@@ -23,6 +23,11 @@ function emptyDb() {
     transfers: [], // [{ accountId, amountMicros, transferId, at, rails }]
     seenNonces: {}, // deviceId -> { nonce: at } (replay protection)
     counterLog: {}, // deviceId -> [submittedAtMs] (rate limiting)
+    // ---- Phase 2: demand side ----
+    advertisers: {}, // advertiserId -> { advertiserId, name, email, balanceMicros, createdAt }
+    apiKeys: {}, // apiKey -> advertiserId
+    campaigns: {}, // campaignId -> campaign + { advertiserId, status, budgetMicros, spentMicros }
+    campaignStats: {}, // campaignId -> { impressions, engagements, conversions, flagged, spentMicros }
   };
 }
 
@@ -173,6 +178,140 @@ export function recordCounterSubmission(deviceId, atMs = Date.now()) {
 export function recentCounterCount(deviceId, atMs = Date.now()) {
   const d = ensure();
   return (d.counterLog[deviceId] || []).filter((t) => t > atMs - 60_000).length;
+}
+
+// ---- Phase 2: advertisers, campaigns, budgets ------------------------------
+
+export function createAdvertiser({ name, email, apiKey }) {
+  const d = ensure();
+  const advertiserId = 'adv_' + Buffer.from(name + ':' + email).toString('hex').slice(0, 12);
+  d.advertisers[advertiserId] = d.advertisers[advertiserId] || {
+    advertiserId,
+    name,
+    email,
+    balanceMicros: 0,
+    createdAt: new Date().toISOString(),
+  };
+  d.apiKeys[apiKey] = advertiserId;
+  flush();
+  return { advertiser: d.advertisers[advertiserId], apiKey };
+}
+
+export function resolveApiKey(apiKey) {
+  return ensure().apiKeys[apiKey] || null;
+}
+
+export function getAdvertiser(advertiserId) {
+  return ensure().advertisers[advertiserId] || null;
+}
+
+export function fundAdvertiser(advertiserId, amountMicros) {
+  const d = ensure();
+  const a = d.advertisers[advertiserId];
+  if (!a) return null;
+  a.balanceMicros += amountMicros;
+  flush();
+  return a;
+}
+
+export function createCampaign(advertiserId, campaign) {
+  const d = ensure();
+  const id = campaign.id || 'camp_' + cryptoRandom();
+  d.campaigns[id] = {
+    ...campaign,
+    id,
+    advertiserId,
+    status: campaign.status || 'active',
+    budgetMicros: campaign.budgetMicros ?? 0,
+    spentMicros: 0,
+    createdAt: new Date().toISOString(),
+  };
+  d.campaignStats[id] = { impressions: 0, engagements: 0, conversions: 0, flagged: 0, spentMicros: 0 };
+  flush();
+  return d.campaigns[id];
+}
+
+export function getCampaign(campaignId) {
+  return ensure().campaigns[campaignId] || null;
+}
+
+export function setCampaignStatus(campaignId, status) {
+  const d = ensure();
+  if (d.campaigns[campaignId]) {
+    d.campaigns[campaignId].status = status;
+    flush();
+  }
+  return d.campaigns[campaignId] || null;
+}
+
+export function campaignsForAdvertiser(advertiserId) {
+  return Object.values(ensure().campaigns).filter((c) => c.advertiserId === advertiserId);
+}
+
+/** Active campaigns that still have budget AND a funded advertiser. */
+export function activeCampaigns() {
+  const d = ensure();
+  return Object.values(d.campaigns).filter((c) => {
+    if (c.status !== 'active') return false;
+    const remaining = c.budgetMicros - c.spentMicros;
+    if (remaining <= 0) return false;
+    const adv = d.advertisers[c.advertiserId];
+    return adv && adv.balanceMicros > 0;
+  });
+}
+
+export function campaignRemainingBudget(campaignId) {
+  const c = getCampaign(campaignId);
+  if (!c) return Infinity; // seed/legacy campaigns have no server budget
+  const adv = getAdvertiser(c.advertiserId);
+  const advRemaining = adv ? adv.balanceMicros : 0;
+  return Math.max(0, Math.min(c.budgetMicros - c.spentMicros, advRemaining));
+}
+
+/** Charge an advertiser campaign for spend (gross). Caps at remaining budget. */
+export function recordSpend(campaignId, grossMicros) {
+  const d = ensure();
+  const c = d.campaigns[campaignId];
+  if (!c) return; // seed/legacy: no advertiser to bill
+  c.spentMicros += grossMicros;
+  const adv = d.advertisers[c.advertiserId];
+  if (adv) adv.balanceMicros = Math.max(0, adv.balanceMicros - grossMicros);
+  const s = d.campaignStats[campaignId];
+  if (s) s.spentMicros += grossMicros;
+  if (c.budgetMicros - c.spentMicros <= 0) c.status = 'exhausted';
+  flush();
+}
+
+/** Track per-campaign traffic for the advertiser's invalid-traffic metric. */
+export function recordCampaignEvent(campaignId, type, { flagged = false } = {}) {
+  const d = ensure();
+  d.campaignStats[campaignId] = d.campaignStats[campaignId] || {
+    impressions: 0,
+    engagements: 0,
+    conversions: 0,
+    flagged: 0,
+    spentMicros: 0,
+  };
+  const s = d.campaignStats[campaignId];
+  if (type === 'impression') s.impressions++;
+  else if (type === 'engagement') s.engagements++;
+  else if (type === 'conversion') s.conversions++;
+  if (flagged) s.flagged++;
+  flush();
+}
+
+export function campaignStats(campaignId) {
+  const s = ensure().campaignStats[campaignId] || { impressions: 0, engagements: 0, conversions: 0, flagged: 0, spentMicros: 0 };
+  const total = s.impressions + s.engagements + s.conversions + s.flagged;
+  return { ...s, total, invalidTrafficRate: total ? +(s.flagged / total).toFixed(4) : 0 };
+}
+
+function cryptoRandom() {
+  // tiny id without pulling crypto into the store; collision-resistant enough
+  // for a reference store (the server passes explicit ids in practice).
+  return (
+    Date.now().toString(36) + Math.floor(Math.random() * 1e9).toString(36)
+  ).slice(-12);
 }
 
 // ---- test/demo helpers -----------------------------------------------------

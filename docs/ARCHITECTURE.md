@@ -79,6 +79,31 @@ to a table with the same shape.
 
 ## Surface roadmap (PRD §7) and where it plugs in
 
-`status` is surface #1 (agent CLIs). Build/CI and long-job surfaces (#2/#3) reuse
-the same `record`/`flush` path with different session signals. The opt-in latency
-SDK (#4) is a thin wrapper that calls the same `@codecash/core` primitives.
+`status` is surface #1 (agent CLIs). Build/CI and long-job surfaces (#2/#3) are
+implemented by `codecash wrap`, which reuses the same `record`/`flush` path with
+session signals derived from a wrapped command's real runtime
+([surfaces.js](../apps/cli/src/surfaces.js)). The opt-in latency SDK (#4),
+[`@codecash/sdk`](../packages/sdk), is a thin wrapper that calls the same
+`@codecash/core` primitives — `duringWait()` and `wrapStream()` (time-to-first-
+token). None of these required a change to the payout formula or receipt format.
+
+## Demand side (Phase 2)
+
+The same broker server grows a second identity space — **advertisers** (API key)
+alongside **earners** (account token). Advertiser campaigns are stored in
+[`store.js`](../apps/server/src/store.js) and **unioned** with the seeded floor to
+build the signed bundle, so live demand and the affiliate floor serve through one
+surface. Pricing tiers (CPM/CPC/CPA) live in
+[`pricing.js`](../packages/core/pricing.js), which maps an advertiser's bid into
+the single published formula's inputs — so receipts stay reproducible with no
+knowledge of the objective. Budgets are paced by the same capping logic that
+limits earner velocity; brokered demand is imported by
+[`broker.js`](../apps/server/src/broker.js). See [DEMAND.md](./DEMAND.md).
+
+```
+   earners (CLI/SDK) ──counters──▶ ┌──────────────┐ ◀──campaigns/fund── advertisers
+                                   │    broker     │
+   signed receipts ◀──────────────│   (server)    │──spend/stats──▶ advertiser console
+                                   └──────────────┘
+                          one signed bundle = seeded floor ∪ live demand
+```

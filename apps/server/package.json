@@ -1,11 +1,11 @@
 {
   "name": "@codecash/server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CodeCash broker server: signed campaign bundles, signed-counter ingestion with fraud checks, signed-receipt issuance, transparent ledger, and Stripe payout rails. Built on Node's stdlib http — zero runtime dependencies.",
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@codecash/core": "0.1.0"
+    "@codecash/core": "0.2.0"
   },
   "scripts": {
     "start": "node src/server.js",

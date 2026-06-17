@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CodeCash — Advertiser Console</title>
+    <style>
+      :root {
+        --bg: #0b0e14; --panel: #131823; --line: #222a3a; --text: #e6edf3;
+        --muted: #8b98ad; --accent: #60a5fa; --accent-dim: #16263a; --bad: #f87171;
+        --good: #4ade80; --chip: #1c2433;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      header { padding: 24px 28px 16px; border-bottom: 1px solid var(--line); }
+      h1 { margin: 0; font-size: 20px; } h1 .b { color: var(--accent); }
+      .sub { color: var(--muted); margin-top: 4px; font-size: 12px; }
+      main { padding: 20px 28px 60px; max-width: 1100px; }
+      .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+      input { background: var(--panel); border: 1px solid var(--line); color: var(--text); padding: 8px 10px; border-radius: 8px; font: inherit; min-width: 320px; }
+      button { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); padding: 8px 14px; border-radius: 8px; font: inherit; cursor: pointer; }
+      .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 22px; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+      .card .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; }
+      .card .v { font-size: 22px; margin-top: 6px; }
+      .card .v.itp { color: var(--good); }
+      table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 12px; overflow: hidden; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+      th { color: var(--muted); text-transform: uppercase; font-size: 10.5px; letter-spacing: .5px; }
+      td.num { text-align: right; font-variant-numeric: tabular-nums; }
+      .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); font-size: 11px; }
+      .status-active { color: var(--good); } .status-exhausted { color: var(--muted); }
+      .itr-good { color: var(--good); } .itr-bad { color: var(--bad); }
+      .note { color: var(--muted); font-size: 12px; margin-top: 18px; }
+      .empty { color: var(--muted); padding: 30px 0; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Code<span class="b">Cash</span> · Advertiser Console</h1>
+      <div class="sub">You buy <strong>verified</strong> developer attention — quality-gated impressions, clicks, and conversions. Invalid traffic is measured and shown, never billed.</div>
+    </header>
+    <main>
+      <div class="controls">
+        <input id="key" placeholder="x-api-key (from POST /v1/advertisers)" />
+        <button id="load">Load campaigns</button>
+      </div>
+      <div class="cards" id="cards"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Campaign</th><th>Objective</th><th class="num">Spent</th><th class="num">Budget left</th>
+            <th class="num">Impr.</th><th class="num">Clicks</th><th class="num">Conv.</th>
+            <th class="num">Invalid traffic</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rows"><tr><td colspan="9" class="empty">Enter your API key and load.</td></tr></tbody>
+      </table>
+      <div class="note">Invalid-traffic rate = billable events that were quality-gated to $0 by CodeCash's fraud layer. A low rate is the trust signal that lets us sell verified attention (see docs/FRAUD.md).</div>
+    </main>
+    <script type="module">
+      const $ = (id) => document.getElementById(id);
+      const url = new URL(location.href);
+      $('key').value = url.searchParams.get('key') || '';
+      const usd = (m) => '$' + (m / 1e6).toFixed(2);
+
+      async function load() {
+        const key = $('key').value.trim();
+        const h = { 'x-api-key': key };
+        const stats = await (await fetch('/v1/advertisers/stats', { headers: h })).json();
+        const list = await (await fetch('/v1/advertisers/campaigns', { headers: h })).json();
+        if (!list.campaigns) { $('rows').innerHTML = `<tr><td colspan="9" class="empty">Invalid API key.</td></tr>`; return; }
+        $('cards').innerHTML = `
+          <div class="card"><div class="k">Balance</div><div class="v">${usd(stats.balanceMicros)}</div></div>
+          <div class="card"><div class="k">Spent</div><div class="v">${usd(stats.spentMicros)}</div></div>
+          <div class="card"><div class="k">Impr. / Clicks / Conv.</div><div class="v">${stats.impressions}/${stats.engagements}/${stats.conversions}</div></div>
+          <div class="card"><div class="k">Invalid traffic</div><div class="v itp">${(stats.invalidTrafficRate * 100).toFixed(1)}%</div></div>`;
+        const rows = list.campaigns.map((c) => {
+          const s = c.stats;
+          const itr = (s.invalidTrafficRate * 100).toFixed(1);
+          return `<tr>
+            <td>${c.advertiser}<br><span class="chip">${c.text.slice(0, 40)}</span></td>
+            <td><span class="chip">${c.objective || 'cpm'}</span></td>
+            <td class="num">${usd(s.spentMicros)}</td>
+            <td class="num">${usd(c.remainingBudgetMicros)}</td>
+            <td class="num">${s.impressions}</td><td class="num">${s.engagements}</td><td class="num">${s.conversions}</td>
+            <td class="num ${s.invalidTrafficRate > 0.1 ? 'itr-bad' : 'itr-good'}">${itr}%</td>
+            <td class="status-${c.status}">${c.status}</td>
+          </tr>`;
+        }).join('');
+        $('rows').innerHTML = rows || `<tr><td colspan="9" class="empty">No campaigns yet.</td></tr>`;
+      }
+      $('load').addEventListener('click', load);
+      if ($('key').value) load();
+    </script>
+  </body>
+</html>

@@ -7,7 +7,11 @@ import { files, ensureHome } from './paths.js';
 const DEFAULTS = {
   enabled: true, // master kill-switch (FR4). `codecash off` sets false.
   pausedUntil: null, // ISO string; `codecash pause` sets a session/temporary pause.
-  mode: 'earn', // 'earn' (see ads + earn) | 'off' (pay-to-remove / no ads) — §8 opt-in
+  // §8 monetization modes:
+  //   'earn'    — rotating, targeted inventory; you earn on every model (default)
+  //   'sponsor' — one tasteful "powered by" sponsor per period (podcast-style)
+  //   'off'     — pay-to-remove: no ads, no earnings
+  mode: 'earn',
   serverUrl: process.env.CODECASH_SERVER || 'http://127.0.0.1:8787',
   surface: 'agent-cli',
   frequencyCapPerHour: 6, // FR3 global frequency cap
@@ -38,7 +42,8 @@ export function patchConfig(patch) {
 /** Is CodeCash currently allowed to show a sponsored line? (FR4) */
 export function isActive(cfg = loadConfig(), nowMs = Date.now()) {
   if (!cfg.enabled) return false;
-  if (cfg.mode !== 'earn') return false;
+  // 'earn' and 'sponsor' both render; only 'off' (pay-to-remove) is silent.
+  if (cfg.mode === 'off') return false;
   if (cfg.pausedUntil && Date.parse(cfg.pausedUntil) > nowMs) return false;
   return true;
 }

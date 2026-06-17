@@ -53,7 +53,10 @@ function loadCachedBundle() {
  * @param {object} opts
  * @param {string} [opts.cwd]
  * @param {string[]} [opts.files] file names in cwd (for local tag derivation)
- * @param {string} [opts.receiptPublicKey] to verify the cached bundle signature
+ * @param {string} [opts.surface] surface override (e.g. "build-ci", "long-job")
+ * @param {string[]} [opts.tags] extra context tags to merge (Phase 3 surfaces)
+ * @param {string} [opts.bundlePublicKey] to verify the cached bundle signature
+ * @param {boolean} [opts.countFrequency] default true; false = preview only
  * @param {number} [opts.nowMs]
  */
 export function renderLine(opts = {}) {
@@ -77,18 +80,39 @@ export function renderLine(opts = {}) {
   }
 
   // On-device targeting (G4). Tags are derived locally and never transmitted.
-  const tags = deriveLocalTags({ cwd: opts.cwd || process.cwd(), files: opts.files || [] });
+  const tags = [
+    ...deriveLocalTags({ cwd: opts.cwd || process.cwd(), files: opts.files || [] }),
+    ...(opts.tags || []),
+  ];
+  const surface = opts.surface || cfg.surface;
   const dailyFreq = freq.perCampaign;
-  const campaign = selectCampaign(cached.body, { tags, surface: cfg.surface, frequency: dailyFreq }, freq.shown.length + nowMs);
+
+  let campaign;
+  if (cfg.mode === 'sponsor') {
+    // §8 "powered by": one pinned sponsor per period, no rotation/targeting.
+    campaign = pickPinnedSponsor(cached.body, nowMs);
+  } else {
+    campaign = selectCampaign(cached.body, { tags, surface, frequency: dailyFreq }, freq.shown.length + nowMs);
+  }
   if (!campaign) return { line: '' };
 
   // Record visibility (used for verified-impression assessment) + frequency.
-  freq.shown.push(nowMs);
-  freq.perCampaign[campaign.id] = (freq.perCampaign[campaign.id] || 0) + 1;
-  freq.lastShown = { campaignId: campaign.id, at: nowMs };
-  saveFrequency(freq);
+  if (opts.countFrequency !== false) {
+    freq.shown.push(nowMs);
+    freq.perCampaign[campaign.id] = (freq.perCampaign[campaign.id] || 0) + 1;
+    freq.lastShown = { campaignId: campaign.id, at: nowMs, surface };
+    saveFrequency(freq);
+  }
 
-  return { line: formatLine(campaign), campaign };
+  return { line: formatLine(campaign), campaign, surface };
+}
+
+/** Pick a single, stable "powered by" sponsor for the current day (§8). */
+function pickPinnedSponsor(bundleBody, nowMs) {
+  const sponsors = (bundleBody.campaigns || []).filter((c) => c.model === 'sponsor');
+  if (sponsors.length === 0) return null;
+  const dayIndex = Math.floor(nowMs / 86_400_000);
+  return sponsors[dayIndex % sponsors.length];
 }
 
 /** One tasteful, clearly-labeled line. No ANSI animation. */

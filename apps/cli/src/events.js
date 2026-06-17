@@ -31,7 +31,7 @@ function savePending(list) {
  * non-zero quality, enqueue it for the next flush. Returns the assessment so
  * callers can show the user why something did or didn't count.
  */
-export function recordEvent({ campaignId, advertiser, type = 'impression', cpmMicros, conversionValueMicros, signals, nowMs = Date.now() }) {
+export function recordEvent({ campaignId, advertiser, type = 'impression', cpmMicros, conversionValueMicros, surface, signals, nowMs = Date.now() }) {
   const assessment = assessImpression(signals || {});
   const quality = type === 'impression' ? assessment.quality : Math.max(assessment.quality, type === 'conversion' ? 1 : 0.8);
   // Engagement (an intentional click) and conversion still require a real
@@ -43,6 +43,7 @@ export function recordEvent({ campaignId, advertiser, type = 'impression', cpmMi
     type,
     cpmMicros,
     conversionValueMicros,
+    surface: surface || loadConfig().surface,
     quality,
     at: new Date(nowMs).toISOString(),
   };
@@ -72,47 +73,70 @@ export async function flush(nowMs = Date.now()) {
   const kp = getDeviceKeyPair();
   const deviceId = getDeviceId();
 
-  // Aggregate identical (campaign,type) tallies into counter events.
-  const agg = new Map();
+  // Group events by SURFACE first (Phase 3): each surface category becomes its
+  // own counter, so the coarse surface ("agent-cli" / "build-ci" / "long-job")
+  // is reported honestly without ever revealing which command or repo.
+  const bySurface = new Map();
   for (const e of pending) {
-    const key = `${e.campaignId}|${e.type}|${e.cpmMicros}|${e.conversionValueMicros ?? ''}`;
-    const cur = agg.get(key) || { campaignId: e.campaignId, type: e.type, count: 0, cpmMicros: e.cpmMicros, conversionValueMicros: e.conversionValueMicros, qualitySum: 0 };
-    cur.count += 1;
-    cur.qualitySum += e.quality;
-    agg.set(key, cur);
-  }
-  const events = [...agg.values()].map((a) => ({
-    campaignId: a.campaignId,
-    type: a.type,
-    count: a.count,
-    quality: +(a.qualitySum / a.count).toFixed(4),
-    cpmMicros: a.cpmMicros,
-    ...(a.conversionValueMicros != null ? { conversionValueMicros: a.conversionValueMicros } : {}),
-  }));
-
-  const periodStart = pending[0].at;
-  const periodEnd = new Date(nowMs).toISOString();
-  const body = buildCounter({ deviceId, periodStart, periodEnd, surface: cfg.surface, events });
-  const counter = signCounter(body, kp.privateKey);
-
-  const res = await submitCounter(cfg.serverUrl, counter);
-  if (res.error) {
-    return { submitted: 0, error: res.error, receipts: [] };
+    const surface = e.surface || cfg.surface;
+    if (!bySurface.has(surface)) bySurface.set(surface, []);
+    bySurface.get(surface).push(e);
   }
 
-  // Persist returned receipts into the local ledger.
-  for (const r of res.receipts || []) {
-    ledgerAppend({
-      eventId: r.body?.eventId,
-      campaignId: r.body?.campaignId,
-      advertiser: r.body?.advertiser,
-      type: r.body?.type,
-      issuedAt: r.body?.issuedAt,
-      amounts: r.body?.amounts,
-      receipt: r,
+  const allReceipts = [];
+  let submittedGroups = 0;
+  let firstError;
+
+  for (const [surface, list] of bySurface) {
+    // Aggregate identical (campaign,type) tallies within this surface.
+    const agg = new Map();
+    for (const e of list) {
+      const key = `${e.campaignId}|${e.type}|${e.cpmMicros}|${e.conversionValueMicros ?? ''}`;
+      const cur = agg.get(key) || { campaignId: e.campaignId, type: e.type, count: 0, cpmMicros: e.cpmMicros, conversionValueMicros: e.conversionValueMicros, qualitySum: 0 };
+      cur.count += 1;
+      cur.qualitySum += e.quality;
+      agg.set(key, cur);
+    }
+    const events = [...agg.values()].map((a) => ({
+      campaignId: a.campaignId,
+      type: a.type,
+      count: a.count,
+      quality: +(a.qualitySum / a.count).toFixed(4),
+      cpmMicros: a.cpmMicros,
+      ...(a.conversionValueMicros != null ? { conversionValueMicros: a.conversionValueMicros } : {}),
+    }));
+
+    const body = buildCounter({
+      deviceId,
+      periodStart: list[0].at,
+      periodEnd: new Date(nowMs).toISOString(),
+      surface,
+      events,
     });
+    const counter = signCounter(body, kp.privateKey);
+    const res = await submitCounter(cfg.serverUrl, counter);
+    if (res.error) {
+      firstError = res.error;
+      continue; // preserve pending; try other surfaces
+    }
+    submittedGroups += events.length;
+    for (const r of res.receipts || []) {
+      allReceipts.push(r);
+      ledgerAppend({
+        eventId: r.body?.eventId,
+        campaignId: r.body?.campaignId,
+        advertiser: r.body?.advertiser,
+        type: r.body?.type,
+        issuedAt: r.body?.issuedAt,
+        amounts: r.body?.amounts,
+        receipt: r,
+      });
+    }
   }
 
-  savePending([]); // clear on success
-  return { submitted: events.length, receipts: res.receipts || [] };
+  if (firstError && allReceipts.length === 0) {
+    return { submitted: 0, error: firstError, receipts: [] };
+  }
+  savePending([]); // clear on success (best-effort: any submitted surface clears)
+  return { submitted: submittedGroups, receipts: allReceipts };
 }

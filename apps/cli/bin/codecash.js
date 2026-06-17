@@ -22,6 +22,7 @@ const MAP = {
   off: cmd.off,
   on: cmd.on,
   mode: cmd.mode,
+  wrap: cmd.wrap,
   install: cmd.install,
   uninstall: cmd.uninstall,
   doctor: cmd.doctor,
@@ -57,6 +58,16 @@ async function main() {
     process.exitCode = 1;
     return;
   }
+
+  // `wrap` takes a raw sub-command after `--`; don't run it through the flag
+  // parser (those flags belong to the wrapped command, not to CodeCash).
+  if (name === 'wrap') {
+    const sep = rest.indexOf('--');
+    const before = sep >= 0 ? rest.slice(0, sep) : [];
+    const command = sep >= 0 ? rest.slice(sep + 1) : rest;
+    return handler({ ...parse(before), command });
+  }
+
   await handler(parse(rest));
 }
 

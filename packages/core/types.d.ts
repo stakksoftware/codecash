@@ -92,7 +92,24 @@ export interface Campaign {
   requireTags?: string[];
   weight?: number;
   dailyCapImpressions?: number;
+  // Phase 2 — objective-based pricing tiers
+  objective?: 'cpm' | 'cpc' | 'cpa';
+  bidMicros?: Micros;
+  conversionValueMicros?: Micros;
+  advertiserId?: string;
+  budgetMicros?: Micros;
 }
+
+// ---- pricing (Phase 2) ----
+export type Objective = 'cpm' | 'cpc' | 'cpa';
+export const OBJECTIVES: Record<Objective, { billable: EventType; label: string }>;
+export const CONVERSION_REVSHARE: number;
+export function billingInputs(
+  campaign: Partial<Campaign>,
+  eventType: EventType,
+): { type: EventType; cpmMicros?: Micros; conversionValueMicros?: Micros; billable: boolean };
+export function describePricing(campaign: Partial<Campaign>): string;
+export function validateCampaign(c: Partial<Campaign>): { ok: boolean; errors: string[] };
 export function buildBundle(input: { campaigns: Campaign[]; version: string; generatedAt: string; ttlSeconds?: number }): any;
 export function signBundle(body: object, privateKeyB64u: string, keyId?: string): any;
 export function verifyBundle(bundle: any, publicKeyB64u: string): boolean;

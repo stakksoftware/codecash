@@ -1,6 +1,6 @@
 {
   "name": "@codecash/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CodeCash trust core: canonical signing, signed receipts, the published payout formula, privacy-safe counters, and on-device targeting. Zero runtime dependencies.",
   "license": "MIT",
   "type": "module",

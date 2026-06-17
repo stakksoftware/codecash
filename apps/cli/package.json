@@ -1,14 +1,15 @@
 {
   "name": "@codecash/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CodeCash CLI — the open-source, on-device client. Renders one tasteful sponsored wait-state line, targets locally, signs counters, and keeps an auditable local ledger.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "codecash": "bin/codecash.js"
+    "codecash": "bin/codecash.js",
+    "codecash-advertiser": "bin/codecash-advertiser.js"
   },
   "dependencies": {
-    "@codecash/core": "0.1.0"
+    "@codecash/core": "0.2.0"
   },
   "scripts": {
     "test": "node --test test/*.test.js"

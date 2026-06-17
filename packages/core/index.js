@@ -6,6 +6,7 @@
 
 export * from './crypto.js';
 export * from './payout.js';
+export * from './pricing.js';
 export * from './receipt.js';
 export * from './counter.js';
 export * from './bundle.js';

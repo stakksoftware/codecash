@@ -52,19 +52,32 @@ npm run keys           # generate + publish the receipt/bundle keys
 npm run demo           # full end-to-end walkthrough (server + CLI, all local)
 ```
 
+Two end-to-end walkthroughs (server + real CLIs, all local):
+
+```bash
+npm run demo           # Phase 0/1: earn, signed receipts, verify, Stripe cash-out
+npm run demo:phase2    # Phases 2-4: advertisers + broker, wrap, sponsor mode, SDK
+```
+
 Run the pieces yourself:
 
 ```bash
-npm run server         # start the broker on http://127.0.0.1:8787  (+ dashboard at /)
+npm run server         # broker on http://127.0.0.1:8787 (earner / at /, advertiser at /advertiser)
 
-# in another shell:
+# earner:
 node apps/cli/bin/codecash.js login --email you@example.com
 node apps/cli/bin/codecash.js install        # wire into Claude Code statusLine
 node apps/cli/bin/codecash.js sync            # pull the signed campaign bundle
 node apps/cli/bin/codecash.js status          # the sponsored wait-state line
+node apps/cli/bin/codecash.js wrap -- npm install   # monetize a build/long-job wait
 node apps/cli/bin/codecash.js ledger          # your auditable ledger
 node apps/cli/bin/codecash.js verify          # verify receipts independently
-node apps/cli/bin/codecash.js payouts         # fixed threshold + schedule
+
+# advertiser:
+npm run import-feed                            # broker the sample affiliate feed
+node apps/cli/bin/codecash-advertiser.js register --name "Acme" --email ads@acme.com
+node apps/cli/bin/codecash-advertiser.js fund --usd 50
+node apps/cli/bin/codecash-advertiser.js create --objective cpc --bid-usd 0.30 --text "Acme → acme.example" --tags rust,go --budget-usd 10
 ```
 
 ## Repository layout
@@ -73,22 +86,29 @@ node apps/cli/bin/codecash.js payouts         # fixed threshold + schedule
 packages/core      @codecash/core — the zero-dependency trust core
   crypto.js        canonical JSON + Ed25519 sign/verify
   payout.js        THE published payout formula (no balance inputs → no throttling)
+  pricing.js       objective→formula mapping: CPM / CPC / CPA tiers (Phase 2)
   receipt.js       signed, independently-verifiable receipts
   counter.js       privacy-safe counters + a forbidden-field allowlist
   bundle.js        signed campaign bundle
   targeting.js     on-device ad selection
   session.js       verified-impression quality gating
 
+packages/sdk       @codecash/sdk — opt-in latency-monetization SDK (Phase 4)
+  index.js         duringWait() / wrapStream() for third-party apps
+  example.mjs      runnable time-to-first-token example
+
 apps/cli           codecash — the open-source on-device client
-  bin/codecash.js  CLI entrypoint
-  src/             config · keychain · telemetry · render · events · ledger · api · commands
+  bin/codecash.js              earner CLI (incl. `wrap`, `mode`)
+  bin/codecash-advertiser.js   advertiser console CLI (Phase 2)
+  src/             config · keychain · telemetry · render · events · ledger · api · surfaces · advertiser · commands
 
 apps/server        @codecash/server — the broker (Node stdlib http, zero deps)
-  src/             server · store · keys · seed · fraud · payouts · stripe
-  public/          dashboard.html — the transparency ledger UI
+  src/             server · store · keys · seed · broker · fraud · payouts · stripe
+  public/          dashboard.html (earner) · advertiser.html (demand)
+  data/            affiliate-feed.sample.json — brokered demand (FR10)
 
-docs/              PRD · PAYOUT_FORMULA · PRIVACY · PAYOUTS · FRAUD · ARCHITECTURE · keys/
-scripts/           genkeys.mjs · demo.mjs
+docs/              PRD · PAYOUT_FORMULA · PRIVACY · PAYOUTS · FRAUD · DEMAND · SURFACES · SDK · ARCHITECTURE · keys/
+scripts/           genkeys.mjs · demo.mjs · demo-phase2.mjs · import-feed.mjs
 ```
 
 ## The trust core, in one paragraph
@@ -135,17 +155,25 @@ WebCrypto, trusting nothing on the page).
   on-device targeting.
 - **Phase 1 — Launch surface:** ✅ Claude Code statusLine, affiliate floor,
   Stripe payout path, zero-maintenance keychain auth.
-- **Phase 2 — Demand:** seeded brokered inventory + engagement/conversion tiers
-  in place; onboarding real advertisers is the next business step.
-- **Phase 3 — Surface expansion** & **Phase 4 — SDK:** `record`/`flush` and
-  `@codecash/core` are designed to extend to build/CI, long-jobs, and a latency
-  SDK with no core changes (see [ARCHITECTURE.md](docs/ARCHITECTURE.md)).
+- **Phase 2 — Demand:** ✅ advertiser console (register/fund/campaigns/stats),
+  CPM/CPC/CPA payout tiers, budget pacing, brokered affiliate-feed import,
+  invalid-traffic metric, advertiser dashboard. See [DEMAND.md](docs/DEMAND.md).
+- **Phase 3 — Surface expansion:** ✅ `codecash wrap` for build/CI + long-job
+  waits, on-device surface detection, "powered by" sponsor mode + pay-to-remove.
+  See [SURFACES.md](docs/SURFACES.md).
+- **Phase 4 — SDK:** ✅ `@codecash/sdk` monetizes third-party app latency /
+  time-to-first-token. See [SDK.md](docs/SDK.md).
+
+All phases share one trust core, one payout formula, and one signed-receipt
+format — Phases 2–4 required **no** change to the formula or receipt
+([ARCHITECTURE.md](docs/ARCHITECTURE.md)).
 
 ## Docs
 
 - [Product Requirements (PRD)](docs/PRD.md)
 - [Payout Formula](docs/PAYOUT_FORMULA.md) · [Payouts](docs/PAYOUTS.md)
 - [Privacy Promise](docs/PRIVACY.md) · [Fraud Resistance](docs/FRAUD.md)
+- [Demand Side (Phase 2)](docs/DEMAND.md) · [Surfaces (Phase 3)](docs/SURFACES.md) · [Latency SDK (Phase 4)](docs/SDK.md)
 - [Architecture](docs/ARCHITECTURE.md)
 
 ## License

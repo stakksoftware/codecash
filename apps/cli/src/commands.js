@@ -4,6 +4,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { spawn } from 'node:child_process';
+import { detectSurface } from './surfaces.js';
 import { loadConfig, patchConfig } from './config.js';
 import { files, home } from './paths.js';
 import {
@@ -107,6 +109,67 @@ export async function flush() {
   const f = await events.flush();
   if (f.error) return fail(`flush failed: ${f.error}`);
   out(`✓ submitted ${f.submitted} event group(s); ${f.receipts.length} signed receipt(s) added to ledger.`);
+}
+
+// FR-Phase3: monetize build/CI + long-job wait states. Runs ANY command, shows
+// one sponsor line while it runs, and credits a verified impression based on the
+// real runtime. Never alters the wrapped command's output or exit code.
+//
+//   codecash wrap -- npm install
+//   codecash wrap -- cargo build --release
+//   codecash wrap -- terraform apply
+export async function wrap(args) {
+  const command = args.command || [];
+  if (!command.length) return fail('usage: codecash wrap -- <command> [args...]');
+
+  const { surface, tags } = detectSurface(command);
+  let shown = null;
+  try {
+    const cfg = loadConfig();
+    const r = render.renderLine({ cwd: process.cwd(), surface, tags, bundlePublicKey: cfg.bundlePublicKey });
+    if (r.line) {
+      process.stderr.write(`\x1b[2m${r.line}\x1b[0m\n`);
+      shown = r;
+    }
+  } catch {
+    /* degrade: still run the command */
+  }
+
+  const start = Date.now();
+  const child = spawn(command[0], command.slice(1), { stdio: 'inherit' });
+  const code = await new Promise((resolve) => {
+    child.on('exit', (c, sig) => resolve(c == null ? (sig ? 1 : 0) : c));
+    child.on('error', (e) => {
+      process.stderr.write(`codecash wrap: cannot run ${command[0]}: ${e.message}\n`);
+      resolve(127);
+    });
+  });
+  const elapsedMs = Date.now() - start;
+
+  // Credit a verified impression: the running command IS the genuine activity
+  // (FR12). Short commands (< min visible) are gated to $0, as they should be.
+  if (shown?.campaign) {
+    try {
+      const res = events.recordEvent({
+        campaignId: shown.campaign.id,
+        advertiser: shown.campaign.advertiser,
+        type: 'impression',
+        cpmMicros: shown.campaign.cpmMicros,
+        surface,
+        signals: { windowFocused: true, agentActive: true, visibleMs: elapsedMs, lastAgentHeartbeatAgeMs: 0 },
+      });
+      if (res.queued) {
+        process.stderr.write(`\x1b[2m· codecash: recorded a ${(elapsedMs / 1000).toFixed(1)}s ${surface} wait (settles per the published formula)\x1b[0m\n`);
+        if (args.flush !== false && args['no-flush'] !== true) await events.flush();
+      } else if (process.env.CODECASH_DEBUG) {
+        process.stderr.write(`· codecash: not credited (${res.assessment.reasons.join('; ')})\n`);
+      }
+    } catch {
+      /* never let CodeCash affect the wrapped command */
+    }
+  }
+
+  process.exitCode = code;
 }
 
 export async function ledgerCmd(args) {
@@ -247,9 +310,16 @@ export async function on() {
 
 export async function mode(args) {
   const m = args._[0];
-  if (!['earn', 'off'].includes(m)) return fail('usage: codecash mode <earn|off>   (off = pay-to-remove / no ads, §8)');
+  if (!['earn', 'sponsor', 'off'].includes(m)) {
+    return fail('usage: codecash mode <earn|sponsor|off>\n  earn    rotating targeted inventory; earn on every model\n  sponsor one tasteful "powered by" sponsor per period (§8)\n  off     pay-to-remove: no ads, no earnings');
+  }
   patchConfig({ mode: m });
-  out(`✓ Mode set to "${m}".${m === 'off' ? ' No ads will show; you will not earn.' : ' You will see one tasteful sponsor line during waits and earn.'}`);
+  const blurb = {
+    earn: 'You will see one tasteful targeted sponsor line during waits and earn.',
+    sponsor: 'One pinned "powered by" sponsor per period — calmer, podcast-style. You still earn.',
+    off: 'No ads will show; you will not earn (pay-to-remove).',
+  };
+  out(`✓ Mode set to "${m}". ${blurb[m]}`);
 }
 
 // FR2: integrate ONLY via Claude Code's sanctioned statusLine setting.
@@ -323,6 +393,7 @@ GETTING STARTED
   install                   Wire into Claude Code's sanctioned statusLine (FR2)
   sync                      Pull the signed campaign bundle; flush pending events
   status                    Print the one sponsored wait-state line (statusLine cmd)
+  wrap -- <command>         Monetize a build/CI/long-job wait (e.g. wrap -- npm install)
 
 EARNINGS & TRUST
   ledger [--limit N] [--json]   Your auditable local ledger (FR5)
@@ -334,7 +405,7 @@ CONTROLS
   pause [--minutes N]       Pause (FR4). Default: 12h
   resume                    Resume
   off | on                  Master kill-switch (FR4)
-  mode <earn|off>           Earn-with-ads or pay-to-remove (§8)
+  mode <earn|sponsor|off>   Targeted earn · "powered by" sponsor · pay-to-remove (§8)
 
 DIAGNOSTICS
   doctor                    Health, auth, circuit-breaker, server reachability

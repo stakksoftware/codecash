@@ -1,0 +1,51 @@
+{
+  "feed": "sample-dev-affiliate-network",
+  "generatedAt": "2026-06-17T00:00:00.000Z",
+  "offers": [
+    {
+      "merchant": "VoltDB Cloud",
+      "headline": "Serverless Postgres with branching — free dev tier → voltdb.example",
+      "url": "https://voltdb.example?ref=codecash",
+      "model": "cpa",
+      "payoutMicros": 3500000,
+      "tags": ["javascript", "python", "go"],
+      "weight": 3
+    },
+    {
+      "merchant": "ShipFast CI",
+      "headline": "10x faster CI for monorepos → shipfast.example/trial",
+      "url": "https://shipfast.example/trial?ref=codecash",
+      "model": "cpc",
+      "payoutMicros": 320000,
+      "tags": ["ci", "docker", "javascript", "go"],
+      "weight": 2
+    },
+    {
+      "merchant": "Kerno Observability",
+      "headline": "Auto-instrument your services in one line → kerno.example",
+      "url": "https://kerno.example?ref=codecash",
+      "model": "cpm",
+      "payoutMicros": 10000000,
+      "tags": ["kubernetes", "docker", "ci"],
+      "weight": 2
+    },
+    {
+      "merchant": "RustForge Pro",
+      "headline": "Cross-compile Rust to every target — 25% off → rustforge.example",
+      "url": "https://rustforge.example?ref=codecash",
+      "model": "cpa",
+      "payoutMicros": 4200000,
+      "tags": ["rust"],
+      "weight": 3
+    },
+    {
+      "merchant": "PromptOps Academy",
+      "headline": "Production LLM engineering, cohort starts Monday → promptops.example",
+      "url": "https://promptops.example?ref=codecash",
+      "model": "cpa",
+      "payoutMicros": 2800000,
+      "tags": ["python", "javascript"],
+      "weight": 2
+    }
+  ]
+}
