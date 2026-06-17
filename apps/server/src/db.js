@@ -28,6 +28,7 @@ export const resolveAccessToken = backend.resolveAccessToken;
 export const resolveRefreshToken = backend.resolveRefreshToken;
 export const appendLedger = backend.appendLedger;
 export const ledgerForAccount = backend.ledgerForAccount;
+export const ledgerForCampaigns = backend.ledgerForCampaigns;
 export const balanceMicros = backend.balanceMicros;
 export const creditedTodayMicros = backend.creditedTodayMicros;
 export const recordTransfer = backend.recordTransfer;

@@ -173,6 +173,14 @@ test('pause/resume, edit, and delete a campaign (ownership-checked)', async () =
   assert.equal(list.json.campaigns.find((c) => c.id === id), undefined);
 });
 
+test('analytics returns a 14-day series ending today with period totals', async () => {
+  const r = await api('GET', '/v1/advertisers/analytics?days=14', { apiKey });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.series.length, 14);
+  assert.ok(r.json.totals.spentMicros >= 0);
+  assert.equal(r.json.series[r.json.series.length - 1].date, new Date().toISOString().slice(0, 10));
+});
+
 test('admin can broker-import an affiliate feed into live campaigns', async () => {
   const offers = [
     { merchant: 'FeedCo', headline: 'FeedCo: try free → feedco.example', url: 'https://feedco.example', model: 'cpa', payoutMicros: 1_500_000, tags: ['python'] },

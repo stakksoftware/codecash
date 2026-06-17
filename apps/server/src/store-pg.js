@@ -146,6 +146,14 @@ export async function ledgerForAccount(accountId) {
   return (rows || []).map(ledgerRow);
 }
 
+export async function ledgerForCampaigns(campaignIds, sinceMs = 0) {
+  if (!campaignIds || campaignIds.length === 0) return [];
+  const since = new Date(sinceMs).toISOString();
+  const inList = campaignIds.map(enc).join(',');
+  const rows = await sel('ledger', `campaign_id=in.(${inList})&issued_at=gt.${enc(since)}&select=campaign_id,type,issued_at,amounts&limit=10000`);
+  return (rows || []).map((r) => ({ campaignId: r.campaign_id, type: r.type, issuedAt: r.issued_at, amounts: r.amounts }));
+}
+
 export async function balanceMicros(accountId) {
   const led = await sel('ledger', `account_id=eq.${enc(accountId)}&select=amounts`);
   const credited = (led || []).reduce((s, e) => s + (e.amounts?.netMicros || 0), 0);

@@ -137,6 +137,19 @@
       .spin { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--blue); margin: 0 auto; animation: sp .7s linear infinite; }
       @keyframes sp { to { transform: rotate(360deg); } }
 
+      /* performance chart */
+      .chartpanel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+      .chart-head { display: flex; align-items: center; gap: 12px; }
+      .chart-metrics { display: inline-flex; gap: 3px; background: var(--app); border: 1px solid var(--line); border-radius: 8px; padding: 3px; }
+      .chart-metrics .cm { padding: 6px 12px; border-radius: 6px; border: none; background: none; color: var(--ink2); font-size: 13px; font-weight: 600; cursor: pointer; }
+      .chart-metrics .cm.active { background: var(--panel); color: var(--blue); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+      .chart-total { font-size: 14px; font-weight: 600; color: var(--ink); }
+      .chart-toggle { margin-left: auto; background: none; border: none; color: var(--ink2); cursor: pointer; font-size: 13px; padding: 6px; border-radius: 6px; }
+      .chart-toggle:hover { background: var(--hover); }
+      .chart-body { margin-top: 14px; }
+      .chart-body svg { display: block; }
+      .chart-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 6px; }
+
       /* filter bar + sortable headers + account menu */
       .filterbar { display: flex; align-items: center; gap: 14px; padding: 12px 2px 14px; }
       .fgroup { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink2); }
@@ -254,6 +267,23 @@
             <div class="kpi"><div class="k">Invalid traffic</div><div class="v tnum" id="k-itr">—</div></div>
           </div>
 
+          <div class="chartpanel" id="chartpanel" style="display:none">
+            <div class="chart-head">
+              <div class="chart-metrics" id="chart-metrics">
+                <button class="cm active" data-metric="spentMicros">Spend</button>
+                <button class="cm" data-metric="impressions">Impressions</button>
+                <button class="cm" data-metric="engagements">Clicks</button>
+                <button class="cm" data-metric="conversions">Conversions</button>
+              </div>
+              <div class="chart-total" id="chart-total"></div>
+              <button class="chart-toggle" id="chart-collapse" title="Collapse">▾ Hide chart</button>
+            </div>
+            <div class="chart-body" id="chart-body">
+              <svg id="chart-svg" width="100%" height="150" viewBox="0 0 600 150" preserveAspectRatio="none"></svg>
+              <div class="chart-axis" id="chart-axis"></div>
+            </div>
+          </div>
+
           <div class="tabs"><div class="t active">Campaigns</div></div>
 
           <div class="filterbar" id="filterbar" style="display:none">
@@ -356,6 +386,7 @@
       const selected = new Set();
       let allCamps = [];
       let filterStatus = '', filterObjective = '', sortKey = null, sortDir = -1;
+      let analytics = null, chartMetric = 'spentMicros';
 
       const OBJ_NAME = { cpm: 'Awareness', cpc: 'Traffic', cpa: 'Conversions' };
       const OBJ_CODE = { cpm: 'CPM', cpc: 'CPC', cpa: 'CPA' };
@@ -413,11 +444,12 @@
       }
       async function refresh() {
         try {
-          const [stats, list] = await Promise.all([api('GET', '/v1/advertisers/stats', { key: apiKey }), api('GET', '/v1/advertisers/campaigns', { key: apiKey })]);
+          const [stats, list, an] = await Promise.all([api('GET', '/v1/advertisers/stats', { key: apiKey }), api('GET', '/v1/advertisers/campaigns', { key: apiKey }), api('GET', '/v1/advertisers/analytics?days=14', { key: apiKey })]);
           $('#acct-bal').textContent = usd(stats.balanceMicros);
           $('#k-spent').textContent = usd(stats.spentMicros); $('#k-impr').textContent = fmt(stats.impressions); $('#k-clicks').textContent = fmt(stats.engagements); $('#k-conv').textContent = fmt(stats.conversions);
           const k = $('#k-itr'); k.textContent = (stats.invalidTrafficRate * 100).toFixed(1) + '%'; k.className = 'v tnum ' + (stats.invalidTrafficRate > 0.1 ? 'amber' : '');
           allCamps = list.campaigns || []; allCamps.forEach((c) => (campById[c.id] = c));
+          analytics = an; $('#chartpanel').style.display = allCamps.length ? '' : 'none'; renderChart();
           selected.clear(); renderTable();
         } catch (e) { toast(e.message, 'err'); }
       }
@@ -505,6 +537,24 @@
         $$('[data-del]').forEach((a) => (a.onclick = () => delCampaigns([a.dataset.del])));
         $$('th.sortable').forEach((th) => (th.onclick = () => { const k = th.dataset.sort; if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = -1; } renderTable(); }));
       }
+      function renderChart() {
+        if (!analytics) return;
+        const series = analytics.series, metric = chartMetric;
+        const val = (d) => (metric === 'spentMicros' ? d.spentMicros / 1e6 : d[metric]);
+        const vals = series.map(val);
+        const max = Math.max(...vals, metric === 'spentMicros' ? 0.01 : 1);
+        const total = analytics.totals[metric];
+        const unit = { impressions: 'impressions', engagements: 'clicks', conversions: 'conversions' }[metric];
+        $('#chart-total').textContent = metric === 'spentMicros' ? usd(total) + ' spent' : fmt(total) + ' ' + unit;
+        const W = 600, H = 150, n = vals.length, gap = 4, bw = (W - gap * (n - 1)) / n;
+        const blue = getComputedStyle(document.documentElement).getPropertyValue('--blue').trim() || '#0866ff';
+        $('#chart-svg').innerHTML = vals.map((v, i) => {
+          const h = max > 0 ? (v / max) * (H - 8) : 0, x = i * (bw + gap), y = H - Math.max(h, v > 0 ? 2 : 0);
+          const lbl = metric === 'spentMicros' ? usd(v * 1e6) : fmt(v);
+          return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(h, v > 0 ? 2 : 1).toFixed(1)}" rx="2" fill="${blue}" opacity="${v > 0 ? 0.9 : 0.13}"><title>${series[i].date}: ${lbl}</title></rect>`;
+        }).join('');
+        $('#chart-axis').innerHTML = [0, Math.floor(n / 2), n - 1].map((i) => `<span>${series[i].date.slice(5)}</span>`).join('');
+      }
       function updateBulk() {
         const n = selected.size, bar = $('#bulkbar');
         bar.classList.toggle('show', n > 0);
@@ -514,6 +564,9 @@
       $('#search').oninput = renderTable;
       $('#f-status').onchange = (e) => { filterStatus = e.target.value; renderTable(); };
       $('#f-objective').onchange = (e) => { filterObjective = e.target.value; renderTable(); };
+      // performance chart controls
+      $$('#chart-metrics .cm').forEach((b) => (b.onclick = () => { chartMetric = b.dataset.metric; $$('#chart-metrics .cm').forEach((x) => x.classList.toggle('active', x === b)); renderChart(); }));
+      $('#chart-collapse').onclick = () => { const body = $('#chart-body'), hidden = body.style.display === 'none'; body.style.display = hidden ? '' : 'none'; $('#chart-collapse').textContent = hidden ? '▾ Hide chart' : '▸ Show chart'; };
       // account dropdown menu
       $('#acctbtn').onclick = (e) => { e.stopPropagation(); $('#acctmenu').classList.toggle('open'); };
       $('#m-copykey').onclick = async () => { try { await navigator.clipboard.writeText(apiKey); toast('API key copied', 'ok'); } catch (e) {} $('#acctmenu').classList.remove('open'); };

@@ -418,6 +418,31 @@ export const handlers = {
     send(res, 200, { ok: true, id });
   },
 
+  async advertiserAnalytics(req, res) {
+    const advertiserId = await authAdvertiser(req);
+    if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
+    const url = new URL(req.url, 'http://localhost');
+    const days = Math.min(90, Math.max(1, Number(url.searchParams.get('days')) || 14));
+    const campaigns = await store.campaignsForAdvertiser(advertiserId);
+    const ids = campaigns.map((c) => c.id);
+    const now = Date.now();
+    const entries = ids.length ? await store.ledgerForCampaigns(ids, now - days * 86400_000) : [];
+    const day = (ms) => new Date(ms).toISOString().slice(0, 10);
+    const buckets = {};
+    for (let i = days - 1; i >= 0; i--) buckets[day(now - i * 86400_000)] = { date: day(now - i * 86400_000), impressions: 0, engagements: 0, conversions: 0, spentMicros: 0 };
+    for (const e of entries) {
+      const b = buckets[(e.issuedAt || '').slice(0, 10)];
+      if (!b) continue;
+      if (e.type === 'impression') b.impressions++;
+      else if (e.type === 'engagement') b.engagements++;
+      else if (e.type === 'conversion') b.conversions++;
+      b.spentMicros += e.amounts?.grossMicros || 0;
+    }
+    const series = Object.values(buckets);
+    const totals = series.reduce((a, b) => ({ impressions: a.impressions + b.impressions, engagements: a.engagements + b.engagements, conversions: a.conversions + b.conversions, spentMicros: a.spentMicros + b.spentMicros }), { impressions: 0, engagements: 0, conversions: 0, spentMicros: 0 });
+    send(res, 200, { days, series, totals });
+  },
+
   async advertiserStats(req, res) {
     const advertiserId = await authAdvertiser(req);
     if (!advertiserId) return send(res, 401, { error: 'invalid api key' });
@@ -549,6 +574,7 @@ export async function handle(req, res) {
     if (p === '/v1/advertisers/campaigns/update' && m === 'POST') return handlers.advertiserUpdateCampaign(req, res);
     if (p === '/v1/advertisers/campaigns/delete' && m === 'POST') return handlers.advertiserDeleteCampaign(req, res);
     if (p === '/v1/advertisers/stats' && m === 'GET') return handlers.advertiserStats(req, res);
+    if (p === '/v1/advertisers/analytics' && m === 'GET') return handlers.advertiserAnalytics(req, res);
     if (p === '/v1/admin/import-feed' && m === 'POST') return handlers.adminImportFeed(req, res);
 
     return handlers.notFound(req, res);

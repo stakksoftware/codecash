@@ -131,6 +131,12 @@ export function ledgerForAccount(accountId) {
   return ensure().ledger.filter((e) => e.accountId === accountId);
 }
 
+/** Credited ledger entries for a set of campaigns since a timestamp (analytics). */
+export function ledgerForCampaigns(campaignIds, sinceMs = 0) {
+  const set = new Set(campaignIds);
+  return ensure().ledger.filter((e) => set.has(e.campaignId) && Date.parse(e.issuedAt || '') > sinceMs);
+}
+
 export function balanceMicros(accountId) {
   const credited = ledgerForAccount(accountId).reduce((s, e) => s + (e.amounts?.netMicros || 0), 0);
   const withdrawn = ensure()
